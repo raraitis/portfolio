@@ -27,8 +27,8 @@ export default function Letter({
   onReturnComplete,
   rubberOffset = { x: 0, y: 0 }
 }: LetterProps) {
-  const [isDraggedIndividually, setIsDraggedIndividually] = useState(false)
-  
+  const [isDraggedIndividually, setIsDraggedIndividually] = useState(false);
+
   // Simple spring-based position
   const [springs, api] = useSpring(() => ({
     x: originalX + wordOffset.x + rubberOffset.x,
@@ -36,20 +36,16 @@ export default function Letter({
     scale: 1,
     rotate: 0,
     opacity: 1,
-    config: { tension: 200, friction: 25 }
-  }))
+    config: { tension: 200, friction: 25 },
+  }));
 
-  // Individual letter drag (when scattered)
-  const bind = useDrag(({ 
-    active, 
-    movement: [mx, my],
-    velocity: [vx, vy]
-  }) => {
-    // ONLY allow individual dragging when scattered!
-    if (!isScattered) return
-    
-    setIsDraggedIndividually(active)
-    
+  // Individual letter drag (when scattered) - DISABLED
+  const bind = useDrag(({ active, movement: [mx, my], velocity: [vx, vy] }) => {
+    // DISABLED: No individual letter dragging when scattered
+    return;
+
+    setIsDraggedIndividually(active);
+
     if (active) {
       // Calculate new position with boundary constraints
       const screenWidth = window.innerWidth;
@@ -74,17 +70,17 @@ export default function Letter({
       // Released - start return home process
       setTimeout(() => {
         if (!isDraggedIndividually) {
-          returnHome()
+          returnHome();
         }
-      }, 300)
+      }, 300);
     }
-  })
+  });
 
   const returnHome = () => {
-    if (isDraggedIndividually) return // Don't return if being held
-    
+    if (isDraggedIndividually) return; // Don't return if being held
+
     // Fast return to original position
-    api.start({ 
+    api.start({
       x: originalX,
       y: originalY,
       scale: 1,
@@ -92,10 +88,10 @@ export default function Letter({
       opacity: 1,
       config: { tension: 300, friction: 20 },
       onRest: () => {
-        onReturnComplete()
-      }
-    })
-  }
+        onReturnComplete();
+      },
+    });
+  };
 
   // Update position when word moves or scatters
   useEffect(() => {
@@ -107,14 +103,13 @@ export default function Letter({
         scale: 0.8 + Math.random() * 0.2,
         rotate: (Math.random() - 0.5) * 360,
         opacity: 0.85,
-        config: { tension: 120, friction: 15 }
-      })
-      
+        config: { tension: 120, friction: 15 },
+      });
+
       // Start returning after delay
       setTimeout(() => {
-        returnHome()
-      }, 500)
-      
+        returnHome();
+      }, 500);
     } else if (!isScattered) {
       // Follow word position
       api.start({
@@ -123,10 +118,10 @@ export default function Letter({
         scale: 1,
         rotate: 0,
         opacity: 1,
-        config: { tension: 250, friction: 20 }
-      })
+        config: { tension: 250, friction: 20 },
+      });
     }
-  }, [wordOffset, isScattered, scatterPosition, rubberOffset])
+  }, [wordOffset, isScattered, scatterPosition, rubberOffset]);
 
   return (
     <animated.div
@@ -135,18 +130,18 @@ export default function Letter({
         position: 'absolute',
         left: springs.x,
         top: springs.y,
-        transform: springs.scale.to(s => `scale(${s})`),
+        transform: springs.scale.to((s) => `scale(${s})`),
         rotate: springs.rotate,
         opacity: springs.opacity,
         cursor: isScattered ? 'grab' : 'default',
         touchAction: 'none',
         zIndex: isScattered ? 50 : 10,
         userSelect: 'none',
-        pointerEvents: isScattered ? 'auto' : 'none'
+        pointerEvents: isScattered ? 'auto' : 'none',
       }}
-      className="text-6xl font-light text-gray-800 tracking-wider"
+      className='text-6xl font-light text-gray-800 tracking-wider'
     >
       {letter}
     </animated.div>
-  )
+  );
 }

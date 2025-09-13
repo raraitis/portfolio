@@ -22,82 +22,101 @@ export default function InteractiveText() {
   // Calculate letter positions when component mounts
   useEffect(() => {
     if (containerRef.current) {
-      const positions: Array<{x: number, y: number}> = []
-      
-      // First name positions - tighter spacing
+      const positions: Array<{ x: number; y: number }> = [];
+
+      // First name positions - RAITIS (tighter spacing)
       firstName.split('').forEach((letter, index) => {
         positions.push({
-          x: index * 42, // Reduced from 48 to 42
-          y: 0
-        })
-      })
-      
-      // Space - smaller gap
-      positions.push({ x: firstName.length * 42 + 20, y: 0 })
-      
-      // Last name positions - continuing from first name
+          x: index * 42,
+          y: 0,
+        });
+      });
+
+      // Space (not rendered but keeps indexing correct)
+      positions.push({ x: 0, y: 0 });
+
+      // Last name positions - KRASLOVSKIS (indented and below)
       lastName.split('').forEach((letter, index) => {
         positions.push({
-          x: (firstName.length * 42 + 20 + 20) + (index * 42), // Continue from first name end
-          y: 0
-        })
-      })
-      
-      setLetterPositions(positions)
-      
-      // Initialize scatter positions
-      setScatterPositions(positions.map(() => ({ x: 0, y: 0 })))
-    }
-  }, [])
+          x: index * 42 + 60, // Indented by 60px from left
+          y: 0, // Will be positioned below by WordGroup baseY
+        });
+      });
 
-  const handleScatter = (startIndex: number, letterCount: number) => {
-    const screenWidth = window.innerWidth
-    const screenHeight = window.innerHeight
-    
+      setLetterPositions(positions);
+
+      // Initialize scatter positions
+      setScatterPositions(positions.map(() => ({ x: 0, y: 0 })));
+    }
+  }, []);
+
+  const handleScatter = (
+    startIndex: number,
+    letterCount: number,
+    isGravityTriggered = false
+  ) => {
+    const screenWidth = window.innerWidth;
+    const screenHeight = window.innerHeight;
+
     // Generate random scatter positions for this word's letters
-    const newScatterPositions = [...scatterPositions]
-    
+    const newScatterPositions = [...scatterPositions];
+
     for (let i = 0; i < letterCount; i++) {
-      const letterIndex = startIndex + i
-      newScatterPositions[letterIndex] = {
-        x: (Math.random() - 0.5) * (screenWidth - 200),
-        y: (Math.random() - 0.5) * (screenHeight - 200)
+      const letterIndex = startIndex + i;
+      const letterSize = 60; // Approximate letter size
+      const padding = letterSize + 20; // Extra padding from edges
+
+      if (isGravityTriggered) {
+        // Gravity scatter - letters fall from top and spread out more
+        newScatterPositions[letterIndex] = {
+          x: padding + Math.random() * (screenWidth - 2 * padding), // Safe X range
+          y:
+            padding +
+            Math.random() * 0.3 * (screenHeight - 2 * padding) +
+            0.4 * (screenHeight - 2 * padding), // Fall from top area but stay in bounds
+        };
+      } else {
+        // Regular scatter - keep well within bounds
+        newScatterPositions[letterIndex] = {
+          x: padding + Math.random() * (screenWidth - 2 * padding), // Safe X range
+          y: padding + Math.random() * (screenHeight - 2 * padding), // Safe Y range
+        };
       }
     }
-    
-    setScatterPositions(newScatterPositions)
-    
+
+    setScatterPositions(newScatterPositions);
+
     // Set appropriate word as scattered
     if (startIndex === 0) {
-      setIsFirstNameScattered(true)
-      setFirstNameReturned(0)
+      setIsFirstNameScattered(true);
+      setFirstNameReturned(0);
     } else {
-      setIsLastNameScattered(true)
-      setLastNameReturned(0)
+      setIsLastNameScattered(true);
+      setLastNameReturned(0);
     }
-  }
+  };
 
   const handleFirstNameReturn = () => {
-    setFirstNameReturned(prev => {
-      const newCount = prev + 1
+    setFirstNameReturned((prev) => {
+      const newCount = prev + 1;
       if (newCount >= firstName.length) {
-        setIsFirstNameScattered(false)
-        return 0
+        setIsFirstNameScattered(false);
+        return 0;
       }
-      return newCount
-    })
-  }
+      return newCount;
+    });
+  };
 
   const handleLastNameReturn = () => {
-    setLastNameReturned(prev => {
-      const newCount = prev + 1
+    setLastNameReturned((prev) => {
+      const newCount = prev + 1;
       if (newCount >= lastName.length) {
-        setIsLastNameScattered(false)
-        return 0
+        setIsLastNameScattered(false);
+        return 0;
       }
-      return newCount
-    })
-  }
+      return newCount;
+    });
+  };
 
   return (
     <>
@@ -105,25 +124,26 @@ export default function InteractiveText() {
       <ThrowableNavigation />
 
       {/* Gradient Line - Left side of name */}
-      <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-20">
-        <div 
-          className="w-1.5 h-40 rounded-full"
+      <div className='fixed inset-0 flex items-center justify-center pointer-events-none z-20'>
+        <div
+          className='w-1.5 h-40 rounded-full'
           style={{
-            background: 'linear-gradient(to bottom, #8b7d6b 0%, #a09280 20%, #b4a694 40%, #c8bea8 60%, rgba(200, 190, 168, 0.6) 80%, rgba(200, 190, 168, 0.2) 90%, transparent 100%)',
-            transform: 'translateX(-350px)'
+            background:
+              'linear-gradient(to bottom, #8b7d6b 0%, #a09280 20%, #b4a694 40%, #c8bea8 60%, rgba(200, 190, 168, 0.6) 80%, rgba(200, 190, 168, 0.2) 90%, transparent 100%)',
+            transform: 'translateX(-350px)',
           }}
         />
       </div>
 
       {/* Main interactive area */}
-      <div className="fixed inset-0 overflow-hidden">
-        <div 
+      <div className='fixed inset-0 overflow-hidden'>
+        <div
           ref={containerRef}
-          className="absolute inset-0 flex items-center justify-center"
+          className='absolute inset-0 flex items-center justify-center'
           style={{ transform: 'translateX(-40px)' }}
         >
           {/* Main container for names */}
-          <div className="relative" style={{ width: '600px', height: '200px' }}>
+          <div className='relative' style={{ width: '600px', height: '200px' }}>
             {/* First Name Group */}
             <WordGroup
               letters={firstName}
@@ -136,13 +156,13 @@ export default function InteractiveText() {
               onReturnComplete={handleFirstNameReturn}
               returnedLetters={firstNameReturned}
             />
-            
-            {/* Last Name Group */}
+
+            {/* Last Name Group - positioned below first name */}
             <WordGroup
               letters={lastName}
               startIndex={firstName.length + 1} // +1 for space
               letterPositions={letterPositions}
-              baseY={100}
+              baseY={80} // Positioned below first name
               onScatter={handleScatter}
               isScattered={isLastNameScattered}
               scatterPositions={scatterPositions}
@@ -153,5 +173,5 @@ export default function InteractiveText() {
         </div>
       </div>
     </>
-  )
+  );
 }

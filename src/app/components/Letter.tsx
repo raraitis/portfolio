@@ -51,13 +51,25 @@ export default function Letter({
     setIsDraggedIndividually(active)
     
     if (active) {
-      // Being dragged - follow mouse immediately
-      api.start({ 
-        x: scatterPosition.x + mx,
-        y: scatterPosition.y + my,
+      // Calculate new position with boundary constraints
+      const screenWidth = window.innerWidth;
+      const screenHeight = window.innerHeight;
+      const letterSize = 60; // Approximate letter size
+
+      let newX = scatterPosition.x + mx;
+      let newY = scatterPosition.y + my;
+
+      // Constrain to screen boundaries with some padding
+      newX = Math.max(letterSize, Math.min(screenWidth - letterSize, newX));
+      newY = Math.max(letterSize, Math.min(screenHeight - letterSize, newY));
+
+      // Being dragged - follow mouse with boundaries
+      api.start({
+        x: newX,
+        y: newY,
         scale: 1.2,
-        immediate: true
-      })
+        immediate: true,
+      });
     } else {
       // Released - start return home process
       setTimeout(() => {

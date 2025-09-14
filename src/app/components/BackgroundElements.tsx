@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { observer } from 'mobx-react-lite';
+import { animationStore } from '@/stores/AnimationStore';
 
-export default function BackgroundElements() {
+const BackgroundElements = observer(() => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -15,101 +17,92 @@ export default function BackgroundElements() {
     let animationFrame: number;
     let time = 0;
 
+    const staticDots: Array<{
+      x: number;
+      y: number;
+      originalX: number;
+      originalY: number;
+      size: number;
+      intensity: number;
+      flickerPhase: number;
+    }> = [];
+
+    const createStaticPattern = () => {
+      staticDots.length = 0;
+      const density = 0.8;
+
+      for (let i = 0; i < (canvas.width * canvas.height * density) / 10000; i++) {
+        const x = Math.random() * canvas.width;
+        const y = Math.random() * canvas.height;
+        staticDots.push({
+          x,
+          y,
+          originalX: x,
+          originalY: y,
+          size: Math.random() * 2 + 0.5,
+          intensity: Math.random() * 0.7 + 0.3,
+          flickerPhase: Math.random() * Math.PI * 2,
+        });
+      }
+    };
+
     const resizeCanvas = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
+      createStaticPattern();
     };
 
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
-    // Sphere properties
-    const sphereRadius = Math.min(window.innerWidth, window.innerHeight) * 0.3; // 60% screen size
+    const getSphereRadius = () => {
+      return Math.min(window.innerWidth, window.innerHeight) * 0.3 * animationStore.background.intensity;
+    };
 
-    // Dot grid properties
-    const gridSpacing = 25; // Reduced from 40 to make more dots
-    const dots: {
-      x: number;
-      y: number;
-      originalX: number;
-      originalY: number;
-    }[] = [];
-
-    // Create dot grid
-    for (let x = 0; x < canvas.width; x += gridSpacing) {
-      for (let y = 0; y < canvas.height; y += gridSpacing) {
-        dots.push({ x, y, originalX: x, originalY: y });
-      }
-    }
+    createStaticPattern();
 
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
       time += 0.01;
 
-      // Moving sphere center (slow orbital motion)
-      const sphereX = canvas.width * 0.5 + Math.cos(time * 0.5) * 200;
-      const sphereY = canvas.height * 0.5 + Math.sin(time * 0.3) * 150;
+      const sphereRadius = getSphereRadius();
+      const baseIntensity = animationStore.background.intensity;
 
-      // Draw background gradient
-      const gradient = ctx.createRadialGradient(
-        sphereX,
-        sphereY,
-        0,
-        sphereX,
-        sphereY,
-        sphereRadius * 2
-      );
-      gradient.addColorStop(0, 'rgba(245, 238, 231, 0.1)');
-      gradient.addColorStop(0.5, 'rgba(240, 235, 226, 0.05)');
-      gradient.addColorStop(1, 'rgba(245, 240, 232, 0.02)');
+      const centerX = canvas.width * 0.7;
+      const centerY = canvas.height * 0.4;
+      const orbitRadius = 120;
+      const sphereX = centerX + Math.cos(time * 0.3) * orbitRadius + Math.sin(time * 0.7) * 30;
+      const sphereY = centerY + Math.sin(time * 0.2) * orbitRadius * 0.6 + Math.cos(time * 0.9) * 20;
 
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      animationStore.updateSpherePosition({ x: sphereX, y: sphereY });
 
-      // Draw dots affected by sphere gravity
-      dots.forEach((dot) => {
+      staticDots.forEach((dot) => {
         const dx = dot.originalX - sphereX;
         const dy = dot.originalY - sphereY;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
-        // Gravity effect - stronger closer to sphere
-        const gravity = Math.max(0, 1 - distance / sphereRadius);
-        const force = gravity * gravity * 20;
+        const displacementRadius = sphereRadius * 1.5;
+        let displacementX = 0;
+        let displacementY = 0;
 
-        // Calculate displaced position
-        if (distance > 0) {
-          dot.x = dot.originalX - (dx / distance) * force;
-          dot.y = dot.originalY - (dy / distance) * force;
+        if (distance < displacementRadius) {
+          const displacementAmount = ((displacementRadius - distance) / displacementRadius) * 25;
+          const angle = Math.atan2(dy, dx);
+          displacementX = Math.cos(angle) * displacementAmount;
+          displacementY = Math.sin(angle) * displacementAmount;
         }
 
-        // Color intensity based on gravity
-        const alpha = 0.15 + gravity * 0.35; // Slightly reduced opacity
-        const size = 0.5 + gravity * 1.5; // Smaller base size and max size
+        dot.x = dot.originalX + displacementX + Math.sin(time * 2 + dot.flickerPhase) * 0.5;
+        dot.y = dot.originalY + displacementY + Math.cos(time * 1.5 + dot.flickerPhase) * 0.5;
+
+        const flicker = Math.sin(time * 5 + dot.flickerPhase) * 0.3 + 0.7;
+        const alpha = dot.intensity * baseIntensity * flicker;
 
         ctx.fillStyle = `rgba(139, 125, 107, ${alpha})`;
         ctx.beginPath();
-        ctx.arc(dot.x, dot.y, size, 0, Math.PI * 2);
+        ctx.arc(dot.x, dot.y, dot.size, 0, Math.PI * 2);
         ctx.fill();
       });
-
-      // Draw the sphere with subtle glow
-      const sphereGradient = ctx.createRadialGradient(
-        sphereX,
-        sphereY,
-        0,
-        sphereX,
-        sphereY,
-        sphereRadius
-      );
-      sphereGradient.addColorStop(0, 'rgba(139, 125, 107, 0.03)');
-      sphereGradient.addColorStop(0.7, 'rgba(139, 125, 107, 0.01)');
-      sphereGradient.addColorStop(1, 'transparent');
-
-      ctx.fillStyle = sphereGradient;
-      ctx.beginPath();
-      ctx.arc(sphereX, sphereY, sphereRadius, 0, Math.PI * 2);
-      ctx.fill();
 
       animationFrame = requestAnimationFrame(animate);
     };
@@ -117,42 +110,22 @@ export default function BackgroundElements() {
     animate();
 
     return () => {
-      cancelAnimationFrame(animationFrame);
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+      }
       window.removeEventListener('resize', resizeCanvas);
     };
   }, []);
 
   return (
-    <>
-      {/* Static gradient background */}
-      <div className='fixed inset-0 overflow-hidden'>
-        <div
-          className='absolute inset-0'
-          style={{
-            background: `linear-gradient(135deg, #f5f0e8 0%, #f0ebe2 25%, #ede8dc 50%, #e8e3d6 75%, #e3ded0 100%)`,
-          }}
-        />
-      </div>
-
-      {/* Animated canvas */}
-      <canvas
-        ref={canvasRef}
-        className='fixed inset-0 pointer-events-none z-0'
-        style={{ opacity: 0.8 }}
-      />
-
-      {/* Visual frame border */}
-      <div className='fixed inset-0 pointer-events-none z-30'>
-        <div
-          className='absolute inset-5 rounded-lg'
-          style={{
-            borderWidth: '1px',
-            borderStyle: 'solid',
-            borderColor: '#a09280',
-            opacity: 0.4,
-          }}
-        />
-      </div>
-    </>
+    <canvas
+      ref={canvasRef}
+      className="fixed inset-0 w-full h-full pointer-events-none z-0"
+      style={{ background: 'transparent' }}
+    />
   );
-}
+});
+
+BackgroundElements.displayName = 'BackgroundElements';
+
+export default BackgroundElements;

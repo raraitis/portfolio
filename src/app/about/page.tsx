@@ -24,10 +24,6 @@ export default function AboutPage() {
           transition={{ duration: 0.8, delay: 0.4, ease: 'easeOut' }}
           className='text-center'
         >
-          <p className='text-xl md:text-2xl font-light text-gray-600 leading-relaxed mb-8'>
-            endurance sports + web development
-          </p>
-
           <Typewriter
             text='you think it. i make it. you break it. i solve it. we happy. thats a deal.'
             delay={80}

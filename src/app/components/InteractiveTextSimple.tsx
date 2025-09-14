@@ -82,7 +82,7 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
     const letters = word.split('').map((letter, index) => {
       // Each letter gets completely random direction and distance
       const randomAngle = Math.random() * Math.PI * 2; // Full 360 degrees  
-      const randomDistance = 50 + Math.random() * 150; // Variable distances
+      const randomDistance = 80 + Math.random() * 200; // Larger scatter radius
       
       // Calculate scatter position using angle (this gives true directional scatter)
       const scatterX = scatterCenterX + Math.cos(randomAngle) * randomDistance;
@@ -91,9 +91,9 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
       return {
         letter,
         index,
-        // Keep letters on screen but allow wider scatter
-        x: Math.max(30, Math.min(screenWidth - 30, scatterX)),
-        y: Math.max(30, Math.min(screenHeight + 50, scatterY)),
+        // Allow much wider scatter - only prevent going completely off screen
+        x: Math.max(-100, Math.min(screenWidth + 100, scatterX)), // Allow letters to go partially off-screen
+        y: Math.max(-100, Math.min(screenHeight + 200, scatterY)), // Allow much wider vertical range
       };
     });
 
@@ -170,21 +170,22 @@ const ScatteredLetter = ({ letter, x, y }: ScatteredLetterProps) => {
   } = useSpring({
     from: { x, y, rotation: 0, scale: 1 },
     to: async (next) => {
-      // More dynamic rubber ball bounce sequence
+      // Bounce in place at the scattered position - don't move horizontally
       await next({
-        x: x + (Math.random() - 0.5) * 20, // Random horizontal wobble
-        y: y - 25 - Math.random() * 20, // Variable bounce height
+        x, // Stay at scattered X position
+        y: y - 25 - Math.random() * 20, // Bounce up from scattered position
         rotation: (Math.random() - 0.5) * 180, // Random rotation
         scale: 1.15,
       });
       await next({
-        y: y + 5, // Quick drop
+        x, // Stay at scattered X position
+        y: y + 5, // Quick drop from scattered position
         scale: 0.9,
         rotation: (Math.random() - 0.5) * 90,
       });
       await next({
-        x, // Settle to final position
-        y,
+        x, // Final position is the scattered X
+        y, // Final position is the scattered Y
         scale: 1,
         rotation: (Math.random() - 0.5) * 45, // Small final rotation
       });

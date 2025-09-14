@@ -37,11 +37,12 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
         wordScale.start({ to: 1.1, config: { tension: 300, friction: 30 } });
         animationStore.updateBackgroundIntensity();
       } else {
-        // Released - word falls with gravity to bottom and scatters!
-        wordScale.start({ to: 1, config: { tension: 200, friction: 25 } });
+        // Not actively dragging - apply gravity
+        const oy = wordY.get();
+        const ox = wordX.get();
 
-        // Calculate where it will land (bottom of screen with margin)
-        const floorY = Math.min(window.innerHeight - 150, oy + 200); // Don't let it go too far down
+        // Floor collision - allow dropping 200px lower (350px total from edge)
+        const floorY = Math.min(window.innerHeight + 50, oy + 200);
         const finalX = Math.max(100, Math.min(window.innerWidth - 100, ox + vx * 20)); // Keep in bounds
 
         // Animate the fall with gravity-like physics
@@ -54,7 +55,7 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
           to: floorY,
           config: { tension: 60, friction: 10, mass: 2 }, // Heavy gravity fall
           onRest: () => {
-            // HIT THE FLOOR! Scatter into letters
+            // HIT THE FLOOR! Scatter into letters immediately
             scatterWord(finalX, floorY);
           },
         });
@@ -67,8 +68,8 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
       bounds: {
         left: -200, // Don't let words go too far left
         right: window.innerWidth - 200, // Keep visible on right
-        top: -100, // Allow some top movement but not too far
-        bottom: window.innerHeight - 150, // Stop before bottom edge
+        top: -50, // Allow dragging to top of page
+        bottom: window.innerHeight + 100, // Allow dropping 200px lower
       },
     }
   );
@@ -76,12 +77,12 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
   const scatterWord = (centerX: number, centerY: number) => {
     setIsScattered(true);
 
-    // Keep scatter within screen bounds
+    // Keep scatter within screen bounds - allow scatter even when word is below screen
     const boundedCenterX = Math.max(150, Math.min(window.innerWidth - 150, centerX));
-    const boundedCenterY = Math.max(100, Math.min(window.innerHeight - 150, centerY));
+    const boundedCenterY = Math.max(100, Math.min(window.innerHeight + 50, centerY)); // Allow lower scatter
 
     const letters = word.split('').map((letter, index) => {
-      // Scatter letters like rubber balls but keep them on screen
+      // Scatter letters like rubber balls but keep them visible
       const angle = (index / word.length) * Math.PI * 2 + (Math.random() - 0.5) * 1.0;
       const distance = 60 + Math.random() * 80; // Smaller scatter to stay visible
       
@@ -91,9 +92,9 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
       return {
         letter,
         index,
-        // Keep letters within screen bounds
+        // Keep letters within reasonable bounds but allow lower position
         x: Math.max(50, Math.min(window.innerWidth - 50, scatterX)),
-        y: Math.max(50, Math.min(window.innerHeight - 100, scatterY)),
+        y: Math.max(50, Math.min(window.innerHeight + 50, scatterY)),
       };
     });
 

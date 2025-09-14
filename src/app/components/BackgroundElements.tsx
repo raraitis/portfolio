@@ -18,99 +18,73 @@ const BackgroundElements = observer(() => {
     let animationFrame: number;
     let time = 0;
 
-    const staticDots: Array<{
-      x: number;
-      y: number;
-      originalX: number;
-      originalY: number;
-      size: number;
-      intensity: number;
-      flickerPhase: number;
-    }> = [];
-
-    const createStaticPattern = () => {
-      staticDots.length = 0;
-      const density = 1.2; // Increase density for better visibility
-
-      for (let i = 0; i < (canvas.width * canvas.height * density) / 10000; i++) {
-        const x = Math.random() * canvas.width;
-        const y = Math.random() * canvas.height;
-        staticDots.push({
-          x,
-          y,
-          originalX: x,
-          originalY: y,
-          size: Math.random() * 2 + 0.5,
-          intensity: Math.random() * 0.7 + 0.3,
-          flickerPhase: Math.random() * Math.PI * 2,
-        });
-      }
-    };
-
     const resizeCanvas = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-      createStaticPattern();
     };
 
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
-    const getSphereRadius = () => {
-      return Math.min(window.innerWidth, window.innerHeight) * 0.3 * animationStore.background.intensity;
-    };
-
-    createStaticPattern();
-
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      time += 0.01;
+      time += 0.008; // Slow, organic movement
 
-      const sphereRadius = getSphereRadius();
-      const baseIntensity = animationStore.background.intensity;
+      // Sphere size - responsive and subtle
+      const baseRadius = Math.min(window.innerWidth, window.innerHeight) * 0.15;
+      const radius = baseRadius + Math.sin(time * 0.5) * 10; // Subtle pulsing
 
-      const centerX = canvas.width * 0.7;
-      const centerY = canvas.height * 0.4;
-      const orbitRadius = 120;
-      const sphereX = centerX + Math.cos(time * 0.3) * orbitRadius + Math.sin(time * 0.7) * 30;
-      const sphereY = centerY + Math.sin(time * 0.2) * orbitRadius * 0.6 + Math.cos(time * 0.9) * 20;
+      // Organic orbital movement - like it's floating under the surface
+      const centerX = canvas.width * 0.6;
+      const centerY = canvas.height * 0.45;
+      const orbitX = 150;
+      const orbitY = 80;
+      
+      const sphereX = centerX + Math.cos(time * 0.4) * orbitX + Math.sin(time * 0.7) * 25;
+      const sphereY = centerY + Math.sin(time * 0.3) * orbitY + Math.cos(time * 0.9) * 15;
 
+      // Update store for interactions
       animationStore.updateSpherePosition({ x: sphereX, y: sphereY });
 
-      staticDots.forEach((dot) => {
-        const dx = dot.originalX - sphereX;
-        const dy = dot.originalY - sphereY;
-        const distance = Math.sqrt(dx * dx + dy * dy);
+      // Create 3D sphere effect with gradients
+      const gradient = ctx.createRadialGradient(
+        sphereX - radius * 0.3, // Light source offset
+        sphereY - radius * 0.3,
+        0,
+        sphereX,
+        sphereY,
+        radius
+      );
 
-        // SPHERE UNDER FABRIC EFFECT - fabric particles get pushed UP by invisible sphere
-        const sphereInfluenceRadius = sphereRadius * 2.0;
-        let displacementX = 0;
-        let displacementY = 0;
+      // Saturn-themed sphere colors - subtle but visible under the background
+      gradient.addColorStop(0, 'rgba(220, 200, 170, 0.15)'); // Light highlight
+      gradient.addColorStop(0.3, 'rgba(180, 160, 130, 0.12)'); // Mid tone
+      gradient.addColorStop(0.7, 'rgba(140, 120, 90, 0.08)'); // Dark tone
+      gradient.addColorStop(1, 'rgba(100, 80, 60, 0.04)'); // Edge shadow
 
-        if (distance < sphereInfluenceRadius && distance > 0) {
-          // Calculate how much the sphere pushes the fabric up
-          const influence = 1 - (distance / sphereInfluenceRadius);
-          const pushStrength = 40 * Math.pow(influence, 1.2); // Stronger near center
-          
-          // Push particles AWAY from sphere center (fabric being pushed up)
-          const angle = Math.atan2(dy, dx);
-          displacementX = Math.cos(angle) * pushStrength;
-          displacementY = Math.sin(angle) * pushStrength;
-        }
+      // Draw the sphere
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(sphereX, sphereY, radius, 0, Math.PI * 2);
+      ctx.fill();
 
-        // Apply fabric displacement with subtle organic movement
-        dot.x = dot.originalX + displacementX + Math.sin(time * 1.8 + dot.flickerPhase) * 0.8;
-        dot.y = dot.originalY + displacementY + Math.cos(time * 1.3 + dot.flickerPhase) * 0.8;
-
-        // TV static flicker effect
-        const flicker = Math.sin(time * 7 + dot.flickerPhase) * 0.25 + 0.75;
-        const alpha = dot.intensity * baseIntensity * flicker * 0.7;
-
-        ctx.fillStyle = `rgba(139, 125, 107, ${alpha})`;
-        ctx.beginPath();
-        ctx.arc(dot.x, dot.y, dot.size, 0, Math.PI * 2);
-        ctx.fill();
-      });
+      // Optional: Add a subtle rim light for more 3D effect
+      const rimGradient = ctx.createRadialGradient(
+        sphereX,
+        sphereY,
+        radius * 0.85,
+        sphereX,
+        sphereY,
+        radius
+      );
+      
+      rimGradient.addColorStop(0, 'rgba(200, 180, 140, 0)');
+      rimGradient.addColorStop(1, 'rgba(200, 180, 140, 0.06)');
+      
+      ctx.fillStyle = rimGradient;
+      ctx.beginPath();
+      ctx.arc(sphereX, sphereY, radius, 0, Math.PI * 2);
+      ctx.fill();
 
       animationFrame = requestAnimationFrame(animate);
     };

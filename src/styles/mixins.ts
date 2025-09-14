@@ -239,3 +239,33 @@ export const bodyText = css`
   font-weight: ${textStyles.body.md.fontWeight};
   color: ${colors.text.secondary};
 `;
+
+// Saturn theme mixins
+export const saturnBackground = css`
+  background: linear-gradient(135deg, 
+    ${colors.saturn.lightest} 0%, 
+    ${colors.saturn.light} 25%, 
+    ${colors.saturn.medium} 50%, 
+    ${colors.saturn.dark} 75%, 
+    ${colors.saturn.darkest} 100%
+  );
+`;
+
+export const saturnFrame = css`
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  right: 20px;
+  bottom: 20px;
+  border: 1px solid ${colors.saturn.darkest};
+  border-image: linear-gradient(45deg, 
+    ${colors.saturn.darkest} 0%, 
+    ${colors.saturn.frame} 25%, 
+    ${colors.saturn.darkest} 50%, 
+    ${colors.saturn.frameAlt} 75%, 
+    ${colors.saturn.darkest} 100%
+  ) 1;
+  border-radius: 8px;
+  pointer-events: none;
+  z-index: 50;
+`;

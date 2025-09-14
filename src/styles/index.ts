@@ -47,6 +47,34 @@ export const styles = {
       bottom: 0,
       overflow: 'hidden',
     },
+
+    // Saturn theme styles
+    saturnBody: {
+      background: `linear-gradient(135deg, 
+        ${colors.saturn.lightest} 0%, 
+        ${colors.saturn.light} 25%, 
+        ${colors.saturn.medium} 50%, 
+        ${colors.saturn.dark} 75%, 
+        ${colors.saturn.darkest} 100%
+      )`,
+    },
+
+    saturnFrame: {
+      position: 'fixed' as const,
+      inset: 0,
+      margin: '20px',
+      border: `1px solid ${colors.saturn.darkest}`,
+      borderImage: `linear-gradient(45deg, 
+        ${colors.saturn.darkest} 0%, 
+        ${colors.saturn.frame} 25%, 
+        ${colors.saturn.darkest} 50%, 
+        ${colors.saturn.frameAlt} 75%, 
+        ${colors.saturn.darkest} 100%
+      ) 1`,
+      borderRadius: '8px',
+      pointerEvents: 'none' as const,
+      zIndex: zIndex.modal,
+    },
     
     offsetContainer: {
       transform: 'translateX(-190px)',

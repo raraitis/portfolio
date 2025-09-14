@@ -104,10 +104,24 @@ const NavWord = observer(({ word, href, index }: NavWordProps) => {
 });
 
 const ThrowableNavigation = observer(() => {
+  const pathname = usePathname();
+  
+  // Filter navigation items based on current page
+  const getVisibleNavItems = () => {
+    if (pathname === '/contact') {
+      // On ME page, show only HOME
+      return animationStore.navigation.items.filter(item => item.word === 'HOME');
+    }
+    // On all other pages, show all items
+    return animationStore.navigation.items;
+  };
+
+  const visibleItems = getVisibleNavItems();
+
   return (
     <div className='fixed top-16 right-20 z-50'>
       <div className='relative' style={styles.interactive.navContainer}>
-        {animationStore.navigation.items.map((item, index) => (
+        {visibleItems.map((item, index) => (
           <NavWord
             key={item.word}
             word={item.word}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { animationStore } from '@/stores/AnimationStore';
 import { styles } from '../../styles';
@@ -8,6 +8,16 @@ import { leftColumn } from '@/styles/typography';
 
 const BackgroundElements = observer(() => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [currentSection, setCurrentSection] = useState<'home' | 'me'>('home');
+
+  // Listen for global section changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).setBackgroundSection = (section: 'home' | 'me') => {
+        setCurrentSection(section);
+      };
+    }
+  }, []);
 
   useEffect(() => {
     // Store static random sizes and positions for BIG dot small dots
@@ -268,14 +278,24 @@ const BackgroundElements = observer(() => {
       const orbitRadiusZ = canvas.width * 0.25; // Depth radius (smaller for elliptical orbit)
       const orbitAngle = time * 0.3; // Reduced main sphere orbit speed (was 0.5)
 
-      // Calculate 3D orbital position
-      const sphereX = centerX + Math.cos(orbitAngle) * orbitRadiusX;
-      const sphereZ = Math.sin(orbitAngle) * orbitRadiusZ; // Z-depth (forward/backward)
-      // Add vertical oscillation for cylindrical effect
-      const verticalOscillation = Math.sin(time * 0.5) * 32; // 32px up/down, slow oscillation
-      // Y position varies with orbit and oscillation
-      const sphereY =
-        centerY + Math.sin(orbitAngle * 0.5) * 20 + verticalOscillation; // Slight vertical wobble
+      // Calculate 3D orbital position - static on ME section
+      let sphereX, sphereZ, sphereY;
+
+      if (currentSection === 'me') {
+        // ME section: Static sphere position (center of screen, spinning only)
+        sphereX = centerX;
+        sphereZ = 0; // No depth movement
+        sphereY = centerY;
+      } else {
+        // Other sections: Normal orbital motion
+        sphereX = centerX + Math.cos(orbitAngle) * orbitRadiusX;
+        sphereZ = Math.sin(orbitAngle) * orbitRadiusZ; // Z-depth (forward/backward)
+        // Add vertical oscillation for cylindrical effect
+        const verticalOscillation = Math.sin(time * 0.5) * 32; // 32px up/down, slow oscillation
+        // Y position varies with orbit and oscillation
+        sphereY =
+          centerY + Math.sin(orbitAngle * 0.5) * 20 + verticalOscillation; // Slight vertical wobble
+      }
 
       // Perspective effect based on Z-depth
       // When sphereZ > 0, sphere is coming toward us; when < 0, going away
@@ -657,7 +677,8 @@ const BackgroundElements = observer(() => {
 
         // Render orbital BIG dot as sphere made of small random dots
         const miniRadius = orbitalDot.size * 4.5 * perspectiveScale;
-        const spinAngle = time * orbitalDot.spinSpeed * orbitalDot.spinDirection; // Use varied spin parameters
+        const spinAngle =
+          time * orbitalDot.spinSpeed * orbitalDot.spinDirection; // Use varied spin parameters
 
         // Use existing bigDotStaticSizes/Positions arrays, offset by planetDots length
         const staticIndex = planetDots.length + oDx;
@@ -772,7 +793,7 @@ const BackgroundElements = observer(() => {
       }
       window.removeEventListener('resize', resizeCanvas);
     };
-  }, []);
+  }, [currentSection]);
 
   return (
     <>

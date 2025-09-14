@@ -248,11 +248,11 @@ export const headingTextMd = {
 } as const;
 
 export const nameText = {
-  fontFamily: fonts.nabla,
+  fontFamily: fonts.alien, // Alien Encounters font
   fontSize: textStyles.display.md.fontSize, // Bigger size: 36px (was 20px)
   lineHeight: textStyles.display.md.lineHeight,
   fontWeight: 400,
-  color: colors.brand.metallicBeige,
+  color: colors.black,
   letterSpacing: '-0.02em',
 } as const;
 

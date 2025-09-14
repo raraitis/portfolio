@@ -1,6 +1,7 @@
 // Typography system
 export const fonts = {
   sans: [
+    'Alien Encounters',
     'Inter',
     '-apple-system',
     'BlinkMacSystemFont',
@@ -25,6 +26,10 @@ export const fonts = {
   ].join(', '),
 
   nabla: ['Nabla', 'Inter', 'sans-serif'].join(', '),
+
+  alien: ['Alien Encounters', 'Inter', 'sans-serif'].join(', '),
+
+  alienSolid: ['Alien Encounters Solid', 'Inter', 'sans-serif'].join(', '),
 };
 
 // Font weights

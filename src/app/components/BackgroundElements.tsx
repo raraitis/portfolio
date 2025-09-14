@@ -82,22 +82,29 @@ const BackgroundElements = observer(() => {
         const dy = dot.originalY - sphereY;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
-        const displacementRadius = sphereRadius * 1.5;
+        // SPHERE UNDER FABRIC EFFECT - fabric particles get pushed UP by invisible sphere
+        const sphereInfluenceRadius = sphereRadius * 2.0;
         let displacementX = 0;
         let displacementY = 0;
 
-        if (distance < displacementRadius) {
-          const displacementAmount = ((displacementRadius - distance) / displacementRadius) * 25;
+        if (distance < sphereInfluenceRadius && distance > 0) {
+          // Calculate how much the sphere pushes the fabric up
+          const influence = 1 - (distance / sphereInfluenceRadius);
+          const pushStrength = 40 * Math.pow(influence, 1.2); // Stronger near center
+          
+          // Push particles AWAY from sphere center (fabric being pushed up)
           const angle = Math.atan2(dy, dx);
-          displacementX = Math.cos(angle) * displacementAmount;
-          displacementY = Math.sin(angle) * displacementAmount;
+          displacementX = Math.cos(angle) * pushStrength;
+          displacementY = Math.sin(angle) * pushStrength;
         }
 
-        dot.x = dot.originalX + displacementX + Math.sin(time * 2 + dot.flickerPhase) * 0.5;
-        dot.y = dot.originalY + displacementY + Math.cos(time * 1.5 + dot.flickerPhase) * 0.5;
+        // Apply fabric displacement with subtle organic movement
+        dot.x = dot.originalX + displacementX + Math.sin(time * 1.8 + dot.flickerPhase) * 0.8;
+        dot.y = dot.originalY + displacementY + Math.cos(time * 1.3 + dot.flickerPhase) * 0.8;
 
-        const flicker = Math.sin(time * 5 + dot.flickerPhase) * 0.3 + 0.7;
-        const alpha = dot.intensity * baseIntensity * flicker * 0.8; // Increase visibility
+        // TV static flicker effect
+        const flicker = Math.sin(time * 7 + dot.flickerPhase) * 0.25 + 0.75;
+        const alpha = dot.intensity * baseIntensity * flicker * 0.7;
 
         ctx.fillStyle = `rgba(139, 125, 107, ${alpha})`;
         ctx.beginPath();

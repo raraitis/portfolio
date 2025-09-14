@@ -31,59 +31,123 @@ const BackgroundElements = observer(() => {
       time += 0.008; // Slow, organic movement
 
       // Sphere size - responsive and subtle
-      const baseRadius = Math.min(window.innerWidth, window.innerHeight) * 0.15;
-      const radius = baseRadius + Math.sin(time * 0.5) * 10; // Subtle pulsing
+      const baseRadius = Math.min(window.innerWidth, window.innerHeight) * 0.12;
+      const radius = baseRadius + Math.sin(time * 0.5) * 8; // Subtle pulsing
 
-      // Organic orbital movement - like it's floating under the surface
-      const centerX = canvas.width * 0.6;
-      const centerY = canvas.height * 0.45;
-      const orbitX = 150;
-      const orbitY = 80;
+      // Full screen orbital movement - wide sweeping patterns
+      const centerX = canvas.width * 0.5; // Center of screen
+      const centerY = canvas.height * 0.5;
       
-      const sphereX = centerX + Math.cos(time * 0.4) * orbitX + Math.sin(time * 0.7) * 25;
-      const sphereY = centerY + Math.sin(time * 0.3) * orbitY + Math.cos(time * 0.9) * 15;
+      // Large orbital patterns that cover the entire viewport
+      const orbitX = canvas.width * 0.35; // 35% of screen width
+      const orbitY = canvas.height * 0.25; // 25% of screen height
+      
+      // Complex orbital pattern - figure-8 across entire screen
+      const sphereX = centerX + 
+        Math.cos(time * 0.3) * orbitX + 
+        Math.sin(time * 0.7) * (canvas.width * 0.15) +
+        Math.cos(time * 1.1) * 40; // Small variations
+        
+      const sphereY = centerY + 
+        Math.sin(time * 0.25) * orbitY + 
+        Math.cos(time * 0.85) * (canvas.height * 0.1) +
+        Math.sin(time * 1.3) * 30; // Small variations
 
       // Update store for interactions
       animationStore.updateSpherePosition({ x: sphereX, y: sphereY });
 
-      // Create 3D sphere effect with gradients
-      const gradient = ctx.createRadialGradient(
-        sphereX - radius * 0.3, // Light source offset
-        sphereY - radius * 0.3,
-        0,
-        sphereX,
-        sphereY,
-        radius
-      );
-
-      // Saturn-themed sphere colors - subtle but visible under the background
-      gradient.addColorStop(0, 'rgba(220, 200, 170, 0.15)'); // Light highlight
-      gradient.addColorStop(0.3, 'rgba(180, 160, 130, 0.12)'); // Mid tone
-      gradient.addColorStop(0.7, 'rgba(140, 120, 90, 0.08)'); // Dark tone
-      gradient.addColorStop(1, 'rgba(100, 80, 60, 0.04)'); // Edge shadow
-
-      // Draw the sphere
-      ctx.fillStyle = gradient;
-      ctx.beginPath();
-      ctx.arc(sphereX, sphereY, radius, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Optional: Add a subtle rim light for more 3D effect
-      const rimGradient = ctx.createRadialGradient(
-        sphereX,
-        sphereY,
-        radius * 0.85,
-        sphereX,
-        sphereY,
-        radius
-      );
+      // Draw Saturn-like sphere with dotted atmospheric texture
+      ctx.save();
       
-      rimGradient.addColorStop(0, 'rgba(200, 180, 140, 0)');
-      rimGradient.addColorStop(1, 'rgba(200, 180, 140, 0.06)');
-      
-      ctx.fillStyle = rimGradient;
+      // Create slightly irregular sphere shape using multiple arcs
       ctx.beginPath();
-      ctx.arc(sphereX, sphereY, radius, 0, Math.PI * 2);
+      
+      // Draw irregular circular path for more organic feel
+      const irregularRadius = (angle: number) => {
+        const baseVariation = Math.sin(angle * 6) * 0.05; // 6 subtle bumps
+        const detailVariation = Math.sin(angle * 18) * 0.02; // Fine details
+        const timeVariation = Math.sin(time * 2 + angle * 3) * 0.03; // Gentle breathing
+        return radius * (1 + baseVariation + detailVariation + timeVariation);
+      };
+      
+      // Draw custom path with slight irregularities
+      const points = 36; // Smooth but irregular
+      for (let i = 0; i <= points; i++) {
+        const angle = (i / points) * Math.PI * 2;
+        const currentRadius = irregularRadius(angle);
+        const x = sphereX + Math.cos(angle) * currentRadius;
+        const y = sphereY + Math.sin(angle) * currentRadius;
+        
+        if (i === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+      ctx.closePath();
+      ctx.clip();
+      
+      // Generate atmospheric dots/particles within sphere
+      const dotCount = Math.floor(radius * 0.8); // Density based on size
+      
+      for (let i = 0; i < dotCount; i++) {
+        // Random position within sphere
+        const angle = Math.random() * Math.PI * 2;
+        const distance = Math.random() * radius;
+        const dotX = sphereX + Math.cos(angle) * distance;
+        const dotY = sphereY + Math.sin(angle) * distance;
+        
+        // Distance from center for depth effect
+        const centerDist = Math.sqrt((dotX - sphereX) ** 2 + (dotY - sphereY) ** 2);
+        const depthFactor = 1 - (centerDist / radius);
+        
+        // Saturn atmospheric colors with depth-based intensity
+        const colors = [
+          `rgba(255, 220, 150, ${0.4 * depthFactor})`, // Golden yellow
+          `rgba(245, 200, 130, ${0.35 * depthFactor})`, // Warm orange
+          `rgba(230, 210, 160, ${0.3 * depthFactor})`, // Creamy white
+          `rgba(200, 170, 110, ${0.25 * depthFactor})`, // Warm brown
+          `rgba(240, 190, 120, ${0.4 * depthFactor})`, // Saturn gold
+        ];
+        
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const dotSize = (Math.random() * 2 + 0.5) * depthFactor; // Smaller dots fade toward edges
+        
+        // Add slight animation to dots
+        const animatedSize = dotSize + Math.sin(time * 3 + i * 0.1) * 0.3;
+        
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(dotX, dotY, animatedSize, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      
+      // Add subtle atmospheric bands like Saturn's rings (projected on sphere)
+      const bandCount = 3;
+      for (let b = 0; b < bandCount; b++) {
+        const bandY = sphereY - radius + (radius * 2 * (b + 1) / (bandCount + 1));
+        const bandWidth = Math.sqrt(radius * radius - (bandY - sphereY) * (bandY - sphereY)) * 2;
+        
+        if (bandWidth > 0) {
+          const bandAlpha = 0.1 + Math.sin(time + b) * 0.05;
+          ctx.fillStyle = `rgba(255, 215, 120, ${bandAlpha})`;
+          ctx.fillRect(sphereX - bandWidth / 2, bandY - 1, bandWidth, 2);
+        }
+      }
+      
+      ctx.restore();
+      
+      // Add outer atmospheric glow
+      const glowGradient = ctx.createRadialGradient(
+        sphereX, sphereY, radius * 0.8,
+        sphereX, sphereY, radius * 1.3
+      );
+      glowGradient.addColorStop(0, 'rgba(255, 220, 150, 0.08)');
+      glowGradient.addColorStop(1, 'rgba(255, 220, 150, 0)');
+      
+      ctx.fillStyle = glowGradient;
+      ctx.beginPath();
+      ctx.arc(sphereX, sphereY, radius * 1.3, 0, Math.PI * 2);
       ctx.fill();
 
       animationFrame = requestAnimationFrame(animate);

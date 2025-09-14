@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { observer } from 'mobx-react-lite';
 import { animationStore } from '@/stores/AnimationStore';
+import { styles } from '../../styles';
 
 const BackgroundElements = observer(() => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -121,7 +122,7 @@ const BackgroundElements = observer(() => {
     <canvas
       ref={canvasRef}
       className="fixed inset-0 w-full h-full pointer-events-none z-0"
-      style={{ background: 'transparent' }}
+      style={styles.canvas.background}
     />
   );
 });

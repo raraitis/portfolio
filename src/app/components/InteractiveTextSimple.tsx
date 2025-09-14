@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef } from 'react';
+import { styles } from '../../styles';
 
 export default function InteractiveText() {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -12,8 +13,7 @@ export default function InteractiveText() {
         <div
           className='w-1.5 h-56'
           style={{
-            background:
-              'linear-gradient(to bottom, #8b7d6b 0%, #a09280 20%, #b4a694 40%, #c8bea8 60%, rgba(200, 190, 168, 0.6) 80%, rgba(200, 190, 168, 0.2) 90%, transparent 100%)',
+            background: styles.gradients.line.vertical,
             transform: 'translateX(-500px)',
           }}
         />
@@ -24,13 +24,13 @@ export default function InteractiveText() {
         <div
           ref={containerRef}
           className='absolute inset-0 flex items-center justify-center'
-          style={{ transform: 'translateX(-190px)' }}
+          style={styles.layout.offsetContainer}
         >
           {/* Simplified name display */}
-          <div className='relative' style={{ width: '600px', height: '200px' }}>
+          <div className='relative' style={styles.layout.nameContainer}>
             <div className="text-6xl md:text-8xl font-light text-gray-800 select-none">
               <div>RAITIS</div>
-              <div style={{ marginTop: '80px' }}>KRASLOVSKIS</div>
+              <div style={styles.text.nameSpacing}>KRASLOVSKIS</div>
             </div>
           </div>
         </div>

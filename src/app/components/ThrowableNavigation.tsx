@@ -6,6 +6,7 @@ import { useDrag } from '@use-gesture/react'
 import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import { animationStore } from '@/stores/AnimationStore';
+import { styles } from '../../styles';
 
 interface NavWordProps {
   word: string;
@@ -90,12 +91,10 @@ const NavWord = observer(({ word, href, index }: NavWordProps) => {
       {...bind()}
       onClick={handleClick}
       style={{
-        position: 'absolute',
+        ...styles.interactive.navWord,
         x: springX,
         y: springY,
         cursor: navItem.isDragging ? 'grabbing' : 'grab',
-        touchAction: 'none',
-        zIndex: 100,
       }}
       className='text-sm tracking-wide text-gray-600 hover:text-gray-800 transition-colors select-none'
     >
@@ -107,7 +106,7 @@ const NavWord = observer(({ word, href, index }: NavWordProps) => {
 const ThrowableNavigation = observer(() => {
   return (
     <div className='fixed top-16 right-20 z-50'>
-      <div className='relative' style={{ width: '300px', height: '50px' }}>
+      <div className='relative' style={styles.interactive.navContainer}>
         {animationStore.navigation.items.map((item, index) => (
           <NavWord
             key={item.word}

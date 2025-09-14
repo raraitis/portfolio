@@ -5,6 +5,7 @@ import { animated, useSpringValue, useSpring } from '@react-spring/web';
 import { useDrag } from '@use-gesture/react';
 import { animationStore } from '@/stores/AnimationStore';
 import { styles } from '../../styles';
+import GradientLine from './GradientLine';
 
 interface WordProps {
   word: string;
@@ -214,15 +215,7 @@ export default function InteractiveText() {
   return (
     <>
       {/* Gradient Line - Left side of name */}
-      <div className='fixed inset-0 flex items-center justify-center pointer-events-none z-20'>
-        <div
-          className='w-1.5 h-56'
-          style={{
-            background: styles.gradients.line.vertical,
-            transform: 'translateX(-500px)',
-          }}
-        />
-      </div>
+      <GradientLine position="left" offsetX={-500} />
 
       {/* Interactive word area */}
       <div className='fixed inset-0 overflow-hidden'>

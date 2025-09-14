@@ -42,8 +42,9 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
         const ox = wordX.get(); // Keep current X position - drop straight down
 
         // Floor collision - drop almost to bottom of page (only 50px from bottom)
-        const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
-        const floorY = screenHeight - 50; // Almost to the very bottom
+        const screenHeight =
+          typeof window !== 'undefined' ? window.innerHeight : 800;
+        const floorY = screenHeight - 150; // Almost to the very bottom
         const dropDistance = floorY - oy;
 
         // Animate the drop with visible gravity
@@ -79,13 +80,13 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
     const scatterCenterY = centerY;
 
     const letters = word.split('').map((letter, index) => {
-      // Random rubber ball scatter - completely random directions and distances
-      const randomAngle = Math.random() * Math.PI * 2; // Full 360 degrees
-      const randomDistance = 40 + Math.random() * 120; // Variable distances
-      const randomVertical = (Math.random() - 0.5) * 100; // Random vertical bounce
+      // Each letter gets completely random direction and distance
+      const randomAngle = Math.random() * Math.PI * 2; // Full 360 degrees  
+      const randomDistance = 50 + Math.random() * 150; // Variable distances
       
+      // Calculate scatter position using angle (this gives true directional scatter)
       const scatterX = scatterCenterX + Math.cos(randomAngle) * randomDistance;
-      const scatterY = scatterCenterY + Math.sin(randomAngle) * randomDistance + randomVertical;
+      const scatterY = scatterCenterY + Math.sin(randomAngle) * randomDistance;
 
       return {
         letter,

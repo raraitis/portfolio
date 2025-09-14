@@ -31,9 +31,9 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
   const bind = useDrag(
     ({ active, movement: [mx, my], offset: [ox, oy], velocity: [vx, vy] }) => {
       if (active) {
-        // Dragging the word
-        wordX.set(ox);
-        wordY.set(oy);
+        // Dragging the word - use movement from initial position
+        wordX.set(initialX + mx);
+        wordY.set(initialY + my);
         wordScale.start({ to: 1.1, config: { tension: 300, friction: 30 } });
         animationStore.updateBackgroundIntensity();
       } else {
@@ -67,12 +67,7 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
     },
     {
       from: () => [wordX.get(), wordY.get()],
-      bounds: {
-        left: -200, // Don't let words go too far left
-        right: typeof window !== 'undefined' ? window.innerWidth - 200 : 1200, // Keep visible on right
-        top: -50, // Allow dragging to top of page
-        bottom: typeof window !== 'undefined' ? window.innerHeight + 100 : 900, // Allow dropping 200px lower
-      },
+      // Remove bounds to allow free movement
     }
   );
 

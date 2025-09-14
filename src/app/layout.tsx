@@ -41,7 +41,7 @@ export default function RootLayout({
               #beac84 75%, 
               #d4c4a8 100%
             ) 1`,
-            borderRadius: '2px',
+            borderRadius: '8px',
           }}
         />
         

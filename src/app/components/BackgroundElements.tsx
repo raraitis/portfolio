@@ -101,13 +101,13 @@ const BackgroundElements = observer(() => {
         const centerDist = Math.sqrt((dotX - sphereX) ** 2 + (dotY - sphereY) ** 2);
         const depthFactor = 1 - (centerDist / radius);
         
-        // Saturn atmospheric colors with depth-based intensity
+        // Saturn atmospheric colors with depth-based intensity - increased visibility
         const colors = [
-          `rgba(255, 220, 150, ${0.4 * depthFactor})`, // Golden yellow
-          `rgba(245, 200, 130, ${0.35 * depthFactor})`, // Warm orange
-          `rgba(230, 210, 160, ${0.3 * depthFactor})`, // Creamy white
-          `rgba(200, 170, 110, ${0.25 * depthFactor})`, // Warm brown
-          `rgba(240, 190, 120, ${0.4 * depthFactor})`, // Saturn gold
+          `rgba(255, 220, 150, ${0.8 * depthFactor})`, // Golden yellow - more visible
+          `rgba(245, 200, 130, ${0.7 * depthFactor})`, // Warm orange
+          `rgba(230, 210, 160, ${0.6 * depthFactor})`, // Creamy white
+          `rgba(200, 170, 110, ${0.5 * depthFactor})`, // Warm brown
+          `rgba(240, 190, 120, ${0.8 * depthFactor})`, // Saturn gold
         ];
         
         const color = colors[Math.floor(Math.random() * colors.length)];
@@ -129,20 +129,20 @@ const BackgroundElements = observer(() => {
         const bandWidth = Math.sqrt(radius * radius - (bandY - sphereY) * (bandY - sphereY)) * 2;
         
         if (bandWidth > 0) {
-          const bandAlpha = 0.1 + Math.sin(time + b) * 0.05;
+          const bandAlpha = 0.3 + Math.sin(time + b) * 0.1; // More visible bands
           ctx.fillStyle = `rgba(255, 215, 120, ${bandAlpha})`;
-          ctx.fillRect(sphereX - bandWidth / 2, bandY - 1, bandWidth, 2);
+          ctx.fillRect(sphereX - bandWidth / 2, bandY - 2, bandWidth, 4); // Thicker bands
         }
       }
       
       ctx.restore();
       
-      // Add outer atmospheric glow
+      // Add outer atmospheric glow - increased visibility
       const glowGradient = ctx.createRadialGradient(
         sphereX, sphereY, radius * 0.8,
         sphereX, sphereY, radius * 1.3
       );
-      glowGradient.addColorStop(0, 'rgba(255, 220, 150, 0.08)');
+      glowGradient.addColorStop(0, 'rgba(255, 220, 150, 0.2)'); // More visible glow
       glowGradient.addColorStop(1, 'rgba(255, 220, 150, 0)');
       
       ctx.fillStyle = glowGradient;

@@ -8,44 +8,26 @@ import InteractiveText from './components/InteractiveTextSimple';
 const MeSection = () => {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 50 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -50 }}
-      transition={{ duration: 0.6, ease: 'easeOut' }}
-      className='min-h-screen bg-white relative z-10 flex items-center justify-center'
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      className='min-h-screen relative z-10 flex items-center justify-end px-8 sm:px-12 lg:pr-20'
     >
-      <div className='max-w-4xl mx-auto px-6 py-20'>
+      <div className='max-w-full sm:max-w-2xl w-full py-12 sm:py-20'>
         {/* About Section */}
-        <motion.div
-          initial={{ y: -50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
-          className='mb-16'
-        >
-          <h1 className='text-5xl md:text-6xl font-light text-gray-900 mb-8 text-center'>
+        <div className='mb-12 sm:mb-16'>
+          <h1 className='text-4xl sm:text-5xl md:text-6xl font-light text-gray-900 mb-6 sm:mb-8 text-center sm:text-left'>
             Me
           </h1>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ y: 30, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.4, ease: 'easeOut' }}
-          className='text-center mb-20'
-        >
-          <motion.p
-            initial={{ opacity: 0, scale: 0.9, filter: 'blur(10px)' }}
-            animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-            transition={{
-              duration: 1.2,
-              delay: 0.6,
-              ease: [0.22, 1, 0.36, 1],
-            }}
-            className='text-lg text-gray-500 font-alien relative'
+        <div className='text-center sm:text-left mb-16 sm:mb-20'>
+          <p
+            className='text-base sm:text-lg text-gray-500 font-alien relative'
             style={{
               background:
                 'linear-gradient(90deg, #9ca3af 0%, #6b7280 50%, #9ca3af 100%)',
-              backgroundSize: '200% 100%',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
@@ -56,9 +38,9 @@ const MeSection = () => {
               animate={{ backgroundPosition: '-200% 0' }}
               transition={{
                 duration: 2,
-                delay: 1.2,
+                delay: 0.5,
                 ease: 'linear',
-                repeat: Infinity,
+                repeat: 5,
                 repeatType: 'loop',
               }}
               style={{
@@ -77,30 +59,61 @@ const MeSection = () => {
             </motion.span>
             you think it. i make it. you break it. i solve it. universe
             approves. we happy. thats a deal.
-          </motion.p>
-        </motion.div>
+          </p>
+        </div>
 
         {/* Contact Section */}
-        <motion.div
-          initial={{ y: 30, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.8, ease: 'easeOut' }}
-          className='space-y-16'
-        >
-          <div className='space-y-8'>
-            <div className='space-y-6 text-center'>
-              <div className='flex justify-center'>
-                <span className='text-gray-900 w-20'>Email</span>
+        <div className='space-y-12 sm:space-y-16'>
+          <div className='space-y-6 sm:space-y-8'>
+            <div className='space-y-4 sm:space-y-6 text-center sm:text-left'>
+              {/* Email */}
+              <div className='flex items-center justify-center sm:justify-start'>
+                <svg
+                  className='w-5 h-5 sm:w-6 sm:h-6 text-gray-900 mr-3 sm:mr-4 flex-shrink-0'
+                  fill='none'
+                  stroke='currentColor'
+                  viewBox='0 0 24 24'
+                >
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z'
+                  />
+                </svg>
                 <a
                   href='mailto:raraitis@gmail.com'
-                  className='text-gray-600 hover:text-black transition-colors ml-4'
+                  className='text-gray-600 hover:text-black transition-colors font-alien text-sm sm:text-base break-all sm:break-normal'
                 >
                   raraitis@gmail.com
                 </a>
               </div>
+
+              {/* Phone */}
+              <div className='flex items-center justify-center sm:justify-start'>
+                <svg
+                  className='w-5 h-5 sm:w-6 sm:h-6 text-gray-900 mr-3 sm:mr-4 flex-shrink-0'
+                  fill='none'
+                  stroke='currentColor'
+                  viewBox='0 0 24 24'
+                >
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z'
+                  />
+                </svg>
+                <a
+                  href='tel:+37126351731'
+                  className='text-gray-600 hover:text-black transition-colors font-alien text-sm sm:text-base'
+                >
+                  +371 26 351 731
+                </a>
+              </div>
             </div>
           </div>
-        </motion.div>
+        </div>
       </div>
     </motion.div>
   );

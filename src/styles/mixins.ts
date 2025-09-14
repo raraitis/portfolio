@@ -249,8 +249,18 @@ export const headingTextMd = {
 
 export const nameText = {
   fontFamily: fonts.alien, // Alien Encounters font
-  fontSize: textStyles.display.md.fontSize, // Bigger size: 36px (was 20px)
+  fontSize: textStyles.display.md.fontSize, // Desktop: 36px
   lineHeight: textStyles.display.md.lineHeight,
+  fontWeight: 400,
+  color: colors.black,
+  letterSpacing: '-0.02em',
+  // Mobile overrides will be applied via media queries in components
+} as const;
+
+export const nameTextMobile = {
+  fontFamily: fonts.alien,
+  fontSize: textStyles.display.sm.fontSize, // Mobile: 30px (smaller than 36px)
+  lineHeight: textStyles.display.sm.lineHeight,
   fontWeight: 400,
   color: colors.black,
   letterSpacing: '-0.02em',

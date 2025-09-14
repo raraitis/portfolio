@@ -5,11 +5,24 @@ import { StoreProvider } from '@/stores/StoreProvider';
 import SimpleNavigation from './components/SimpleNavigation';
 import BackgroundElements from './components/BackgroundElements';
 import { styles } from '@/styles';
+import type { Metadata, Viewport } from 'next';
 
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
 });
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+};
+
+export const metadata: Metadata = {
+  title: 'Raitis Kraslovskis - Portfolio',
+  description:
+    'you think it. i make it. you break it. i solve it. universe approves. we happy. thats a deal.',
+};
 
 export default function RootLayout({
   children,

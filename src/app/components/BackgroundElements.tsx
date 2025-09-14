@@ -267,7 +267,15 @@ const BackgroundElements = observer(() => {
       time += 0.008; // Slow, organic movement
 
       // Sphere size - responsive and bigger
-      const baseRadius = Math.min(window.innerWidth, window.innerHeight) * 0.62; // Increased from 0.44 to make sphere bigger overall
+      // Base radius - bigger on ME section
+      let baseRadius;
+      if (currentSection === 'me') {
+        // ME section: Much bigger sphere (about 50% of screen width)
+        baseRadius = Math.min(window.innerWidth, window.innerHeight) * 1.2; // Much bigger than 0.62
+      } else {
+        // HOME section: Normal size
+        baseRadius = Math.min(window.innerWidth, window.innerHeight) * 0.62;
+      }
 
       // 3D orbital motion - elliptical orbit with depth
       const centerX = canvas.width * 0.5; // Center of screen
@@ -282,10 +290,10 @@ const BackgroundElements = observer(() => {
       let sphereX, sphereZ, sphereY;
 
       if (currentSection === 'me') {
-        // ME section: Static sphere position (center of screen, spinning only)
-        sphereX = centerX;
+        // ME section: Static sphere position on LEFT side (about 25% from left edge)
+        sphereX = canvas.width * 0.25; // Left side positioning
         sphereZ = 0; // No depth movement
-        sphereY = centerY;
+        sphereY = centerY; // Vertically centered
       } else {
         // Other sections: Normal orbital motion
         sphereX = centerX + Math.cos(orbitAngle) * orbitRadiusX;

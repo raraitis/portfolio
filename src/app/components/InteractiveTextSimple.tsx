@@ -4,7 +4,7 @@ import { useRef, useState, useEffect } from 'react';
 import { animated, useSpringValue, useSpring } from '@react-spring/web';
 import { useDrag } from '@use-gesture/react';
 import { animationStore } from '@/stores/AnimationStore';
-import { styles, nameText } from '../../styles';
+import { styles, nameText, nameTextMobile } from '../../styles';
 import GradientLine from './GradientLine';
 
 interface WordProps {
@@ -24,11 +24,26 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
       index: number;
     }>
   >([]);
+  const [isMobile, setIsMobile] = useState(false);
 
   const wordX = useSpringValue(initialX); // Start directly at final position
   const wordY = useSpringValue(initialY);
   const wordScale = useSpringValue(1); // Start at full size
   const [isDragging, setIsDragging] = useState(false);
+
+  // Check screen size for responsive styling
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768); // Tailwind's md breakpoint
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Choose appropriate text styles based on screen size
+  const currentTextStyles = isMobile ? nameTextMobile : nameText;
 
   // Gravitational influence effect disabled for better performance in fixed position
   // useEffect(() => {
@@ -132,6 +147,7 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
             letter={letterData.letter}
             x={letterData.x}
             y={letterData.y}
+            textStyles={currentTextStyles}
           />
         ))}
       </>
@@ -147,12 +163,13 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
         x: wordX,
         y: wordY,
         scale: wordScale,
-        cursor: 'grab',
-        touchAction: 'none',
-        userSelect: 'none',
-        zIndex: 50,
         transformOrigin: 'center',
-        ...nameText,
+        zIndex: isDragging ? 100 : 50,
+        touchAction: 'none',
+        cursor: isDragging ? 'grabbing' : 'grab',
+        userSelect: 'none' as const,
+        pointerEvents: 'all' as const,
+        ...currentTextStyles,
       }}
       className='select-none'
     >
@@ -165,9 +182,15 @@ interface ScatteredLetterProps {
   letter: string;
   x: number;
   y: number;
+  textStyles: typeof nameText;
 }
 
-const ScatteredLetter = ({ letter, x, y }: ScatteredLetterProps) => {
+const ScatteredLetter = ({
+  letter,
+  x,
+  y,
+  textStyles,
+}: ScatteredLetterProps) => {
   const [currentX, setCurrentX] = useState(x);
   const [currentY, setCurrentY] = useState(y);
 
@@ -218,7 +241,7 @@ const ScatteredLetter = ({ letter, x, y }: ScatteredLetterProps) => {
         transformOrigin: 'center',
         zIndex: 60,
         pointerEvents: 'none',
-        ...nameText,
+        ...textStyles,
         opacity: 0.9,
       }}
       className='select-none'
@@ -237,7 +260,7 @@ export default function InteractiveText() {
       <div className='fixed inset-0 overflow-hidden'>
         <div
           ref={containerRef}
-          className='absolute top-0 left-0 flex items-start justify-start pt-12 pl-12'
+          className='absolute top-0 left-0 flex items-start justify-start pt-8 pl-8 sm:pt-12 sm:pl-12'
         >
           {/* RAITIS - First name */}
           <DraggableWord
@@ -250,8 +273,8 @@ export default function InteractiveText() {
           {/* KRASLOVSKIS - Last name */}
           <DraggableWord
             word='KRASLOVSKIS'
-            initialX={120}
-            initialY={30}
+            initialX={0}
+            initialY={50}
             wordIndex={1}
           />
         </div>

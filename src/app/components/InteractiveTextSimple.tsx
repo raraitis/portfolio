@@ -41,9 +41,9 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
         const oy = wordY.get();
         const ox = wordX.get(); // Keep current X position - drop straight down
 
-        // Floor collision - allow dropping 200px lower
+        // Floor collision - drop almost to bottom of page (only 50px from bottom)
         const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
-        const floorY = Math.min(screenHeight + 50, oy + 200);
+        const floorY = screenHeight - 50; // Almost to the very bottom
         const dropDistance = floorY - oy;
 
         // Animate the drop with visible gravity

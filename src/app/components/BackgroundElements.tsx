@@ -113,8 +113,8 @@ const BackgroundElements = observer(() => {
         const color = colors[Math.floor(Math.random() * colors.length)];
         const dotSize = (Math.random() * 2 + 0.5) * depthFactor; // Smaller dots fade toward edges
         
-        // Add slight animation to dots
-        const animatedSize = dotSize + Math.sin(time * 3 + i * 0.1) * 0.3;
+        // Add slight animation to dots - ensure always positive
+        const animatedSize = Math.max(0.1, dotSize + Math.sin(time * 3 + i * 0.1) * 0.2);
         
         ctx.fillStyle = color;
         ctx.beginPath();

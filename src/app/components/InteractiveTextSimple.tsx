@@ -43,8 +43,8 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
 
         // Floor collision - drop almost to bottom of page (only 50px from bottom)
         const screenHeight =
-          typeof window !== 'undefined' ? window.innerHeight : 800;
-        const floorY = screenHeight - 150; // Almost to the very bottom
+          typeof window !== 'undefined' ? window.innerHeight : 700;
+        const floorY = screenHeight - 300; // Almost to the very bottom
         const dropDistance = floorY - oy;
 
         // Animate the drop with visible gravity
@@ -71,18 +71,14 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
   const scatterWord = (centerX: number, centerY: number) => {
     setIsScattered(true);
 
-    // Scatter exactly from where the word was dropped - no bounds adjustment
-    const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
-    const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
-    
-    // Use exact drop position, no bounding to center
+    // Use exact drop position for scatter center
     const scatterCenterX = centerX;
     const scatterCenterY = centerY;
 
     const letters = word.split('').map((letter, index) => {
       // Each letter gets completely random direction and distance
       const randomAngle = Math.random() * Math.PI * 2; // Full 360 degrees  
-      const randomDistance = 80 + Math.random() * 200; // Larger scatter radius
+      const randomDistance = 120 + Math.random() * 250; // Even larger scatter radius
       
       // Calculate scatter position using angle (this gives true directional scatter)
       const scatterX = scatterCenterX + Math.cos(randomAngle) * randomDistance;
@@ -91,9 +87,9 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
       return {
         letter,
         index,
-        // Allow much wider scatter - only prevent going completely off screen
-        x: Math.max(-100, Math.min(screenWidth + 100, scatterX)), // Allow letters to go partially off-screen
-        y: Math.max(-100, Math.min(screenHeight + 200, scatterY)), // Allow much wider vertical range
+        // No bounds at all - let letters go anywhere for maximum scatter
+        x: scatterX,
+        y: scatterY,
       };
     });
 

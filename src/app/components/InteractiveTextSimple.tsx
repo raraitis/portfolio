@@ -4,7 +4,7 @@ import { useRef, useState, useEffect } from 'react';
 import { animated, useSpringValue, useSpring } from '@react-spring/web';
 import { useDrag } from '@use-gesture/react';
 import { animationStore } from '@/stores/AnimationStore';
-import { styles } from '../../styles';
+import { styles, nameText } from '../../styles';
 import GradientLine from './GradientLine';
 
 interface WordProps {
@@ -25,71 +25,20 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
     }>
   >([]);
 
-  const wordX = useSpringValue(initialX);
+  const wordX = useSpringValue(initialX); // Start directly at final position
   const wordY = useSpringValue(initialY);
-  const wordScale = useSpringValue(1);
+  const wordScale = useSpringValue(1); // Start at full size
   const [isDragging, setIsDragging] = useState(false);
 
-  // Gravitational influence effect - continuous attraction to sphere
-  useEffect(() => {
-    let animationFrame: number;
-    
-    const applyGravity = () => {
-      if (!isDragging && !isScattered) {
-        const currentX = wordX.get();
-        const currentY = wordY.get();
-        
-        // Calculate gravitational pull from sphere
-        const gravity = animationStore.calculateGravitationalPull(
-          { x: currentX, y: currentY }, 
-          80 // Word radius for influence calculation
-        );
-        
-        if (gravity.isInGravityField) {
-          // Apply subtle gravitational drift toward sphere
-          const newX = currentX + gravity.pullX * 0.3; // Gentle pull
-          const newY = currentY + gravity.pullY * 0.3;
-          
-          wordX.start({ 
-            to: newX, 
-            config: { tension: 50, friction: 30, mass: 2 } // Slow, smooth drift
-          });
-          wordY.start({ 
-            to: newY, 
-            config: { tension: 50, friction: 30, mass: 2 }
-          });
-          
-          // Scale effect when in gravity field
-          const scaleEffect = 1 + gravity.influence * 0.05; // Subtle grow
-          wordScale.start({
-            to: scaleEffect,
-            config: { tension: 100, friction: 25 }
-          });
-        } else {
-          // Return to normal scale when outside gravity field
-          wordScale.start({
-            to: 1,
-            config: { tension: 100, friction: 25 }
-          });
-        }
-      }
-      
-      animationFrame = requestAnimationFrame(applyGravity);
-    };
-    
-    applyGravity();
-    
-    return () => {
-      if (animationFrame) {
-        cancelAnimationFrame(animationFrame);
-      }
-    };
-  }, [wordX, wordY, wordScale, isDragging, isScattered]);
+  // Gravitational influence effect disabled for better performance in fixed position
+  // useEffect(() => {
+  //   // Gravitational effects disabled when name is in fixed top-left position
+  // }, []);
 
   const bind = useDrag(
     ({ active, movement: [mx, my], offset: [ox, oy], velocity: [vx, vy] }) => {
       setIsDragging(active);
-      
+
       if (active) {
         // Dragging the word - use movement from initial position
         wordX.set(initialX + mx);
@@ -137,9 +86,9 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
 
     const letters = word.split('').map((letter, index) => {
       // Each letter gets completely random direction and distance
-      const randomAngle = Math.random() * Math.PI * 2; // Full 360 degrees  
+      const randomAngle = Math.random() * Math.PI * 2; // Full 360 degrees
       const randomDistance = 120 + Math.random() * 250; // Even larger scatter radius
-      
+
       // Calculate scatter position using angle (this gives true directional scatter)
       const scatterX = scatterCenterX + Math.cos(randomAngle) * randomDistance;
       const scatterY = scatterCenterY + Math.sin(randomAngle) * randomDistance;
@@ -159,15 +108,15 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
     setTimeout(() => {
       setIsScattered(false);
       setScatteredLetters([]);
-      
+
       // Faster, more fluid magnet pull
-      wordX.start({ 
-        to: initialX, 
-        config: { tension: 120, friction: 25, mass: 1 } // Faster return
+      wordX.start({
+        to: initialX,
+        config: { tension: 120, friction: 25, mass: 1 }, // Faster return
       });
-      wordY.start({ 
-        to: initialY, 
-        config: { tension: 120, friction: 25, mass: 1 } 
+      wordY.start({
+        to: initialY,
+        config: { tension: 120, friction: 25, mass: 1 },
       });
       wordScale.start({ to: 1, config: { tension: 150, friction: 20 } });
     }, 1500); // Shorter display time
@@ -203,8 +152,9 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
         userSelect: 'none',
         zIndex: 50,
         transformOrigin: 'center',
+        ...nameText,
       }}
-      className='text-6xl md:text-8xl font-light text-gray-800 select-none'
+      className='select-none'
     >
       {word}
     </animated.div>
@@ -221,35 +171,10 @@ const ScatteredLetter = ({ letter, x, y }: ScatteredLetterProps) => {
   const [currentX, setCurrentX] = useState(x);
   const [currentY, setCurrentY] = useState(y);
 
-  // Apply gravitational influence to scattered letters
-  useEffect(() => {
-    let animationFrame: number;
-    
-    const applyGravityToLetter = () => {
-      const gravity = animationStore.calculateGravitationalPull(
-        { x: currentX, y: currentY }, 
-        20 // Small radius for letters
-      );
-      
-      if (gravity.isInGravityField) {
-        // Letters get pulled toward sphere during scatter
-        const newX = currentX + gravity.pullX * 0.2; // Gentle pull
-        const newY = currentY + gravity.pullY * 0.2;
-        setCurrentX(newX);
-        setCurrentY(newY);
-      }
-      
-      animationFrame = requestAnimationFrame(applyGravityToLetter);
-    };
-    
-    applyGravityToLetter();
-    
-    return () => {
-      if (animationFrame) {
-        cancelAnimationFrame(animationFrame);
-      }
-    };
-  }, [currentX, currentY]);
+  // Gravitational influence disabled for performance - scattered letters remain static
+  // useEffect(() => {
+  //   // Gravitational effects disabled to prevent infinite re-render loops
+  // }, []);
 
   const {
     x: springX,
@@ -293,8 +218,10 @@ const ScatteredLetter = ({ letter, x, y }: ScatteredLetterProps) => {
         transformOrigin: 'center',
         zIndex: 60,
         pointerEvents: 'none',
+        ...nameText,
+        opacity: 0.9,
       }}
-      className='text-6xl md:text-8xl font-light text-gray-800 select-none opacity-90'
+      className='select-none'
     >
       {letter}
     </animated.div>
@@ -306,28 +233,25 @@ export default function InteractiveText() {
 
   return (
     <>
-      {/* Gradient Line - Left side of name */}
-      <GradientLine position='left' />
-
-      {/* Interactive word area */}
+      {/* Interactive word area positioned in top-left */}
       <div className='fixed inset-0 overflow-hidden'>
         <div
           ref={containerRef}
-          className='absolute inset-0 flex items-center justify-center'
+          className='absolute top-0 left-0 flex items-start justify-start pt-12 pl-12'
         >
-          {/* RAITIS - First word */}
+          {/* RAITIS - First name */}
           <DraggableWord
             word='RAITIS'
-            initialX={-190}
-            initialY={-40}
+            initialX={0}
+            initialY={0}
             wordIndex={0}
           />
 
-          {/* KRASLOVSKIS - Second word */}
+          {/* KRASLOVSKIS - Last name */}
           <DraggableWord
             word='KRASLOVSKIS'
-            initialX={-190}
-            initialY={40}
+            initialX={120}
+            initialY={30}
             wordIndex={1}
           />
         </div>

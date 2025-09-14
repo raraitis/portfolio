@@ -1,6 +1,6 @@
 import { colors } from './colors';
 import { spacing, shadows, borderRadius } from './sizing';
-import { textStyles } from './typography';
+import { textStyles, fonts } from './typography';
 
 // Layout mixins as style objects
 export const flexCenter = {
@@ -54,14 +54,14 @@ export const mediaQuery = {
 // Responsive gradient line positioning
 export const gradientOffsets = {
   left: {
-    mobile: -120,    // Mobile: close to edge but visible
-    tablet: -300,    // Tablet: moderate distance
-    desktop: -600,   // Desktop: full distance
+    mobile: -120, // Mobile: close to edge but visible
+    tablet: -300, // Tablet: moderate distance
+    desktop: -600, // Desktop: full distance
   },
   right: {
-    mobile: 120,     // Mobile: close to edge but visible  
-    tablet: 300,     // Tablet: moderate distance
-    desktop: 600,    // Desktop: full distance
+    mobile: 120, // Mobile: close to edge but visible
+    tablet: 300, // Tablet: moderate distance
+    desktop: 600, // Desktop: full distance
   },
 } as const;
 
@@ -245,6 +245,15 @@ export const headingText = {
 export const headingTextMd = {
   fontSize: textStyles.heading.xl.fontSize,
   lineHeight: textStyles.heading.xl.lineHeight,
+} as const;
+
+export const nameText = {
+  fontFamily: fonts.nabla,
+  fontSize: textStyles.display.md.fontSize, // Bigger size: 36px (was 20px)
+  lineHeight: textStyles.display.md.lineHeight,
+  fontWeight: 400,
+  color: colors.brand.metallicBeige,
+  letterSpacing: '-0.02em',
 } as const;
 
 export const bodyText = {

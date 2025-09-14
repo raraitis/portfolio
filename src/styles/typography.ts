@@ -12,17 +12,19 @@ export const fonts = {
     'Fira Sans',
     'Droid Sans',
     'Helvetica Neue',
-    'sans-serif'
+    'sans-serif',
   ].join(', '),
-  
+
   mono: [
     'Menlo',
     'Monaco',
     'Consolas',
     'Liberation Mono',
     'Courier New',
-    'monospace'
+    'monospace',
   ].join(', '),
+
+  nabla: ['Nabla', 'Inter', 'sans-serif'].join(', '),
 };
 
 // Font weights
@@ -37,19 +39,19 @@ export const fontWeights = {
 
 // Font sizes with corresponding line heights
 export const fontSizes = {
-  xs: { size: '0.75rem', lineHeight: '1rem' },      // 12px / 16px
-  sm: { size: '0.875rem', lineHeight: '1.25rem' },   // 14px / 20px
-  md: { size: '1rem', lineHeight: '1.5rem' },        // 16px / 24px
-  lg: { size: '1.125rem', lineHeight: '1.75rem' },   // 18px / 28px
-  xl: { size: '1.25rem', lineHeight: '1.75rem' },    // 20px / 28px
-  '2xl': { size: '1.5rem', lineHeight: '2rem' },     // 24px / 32px
+  xs: { size: '0.75rem', lineHeight: '1rem' }, // 12px / 16px
+  sm: { size: '0.875rem', lineHeight: '1.25rem' }, // 14px / 20px
+  md: { size: '1rem', lineHeight: '1.5rem' }, // 16px / 24px
+  lg: { size: '1.125rem', lineHeight: '1.75rem' }, // 18px / 28px
+  xl: { size: '1.25rem', lineHeight: '1.75rem' }, // 20px / 28px
+  '2xl': { size: '1.5rem', lineHeight: '2rem' }, // 24px / 32px
   '3xl': { size: '1.875rem', lineHeight: '2.25rem' }, // 30px / 36px
-  '4xl': { size: '2.25rem', lineHeight: '2.5rem' },   // 36px / 40px
-  '5xl': { size: '3rem', lineHeight: '1' },           // 48px / 48px
-  '6xl': { size: '3.75rem', lineHeight: '1' },        // 60px / 60px
-  '7xl': { size: '4.5rem', lineHeight: '1' },         // 72px / 72px
-  '8xl': { size: '6rem', lineHeight: '1' },           // 96px / 96px
-  '9xl': { size: '8rem', lineHeight: '1' },           // 128px / 128px
+  '4xl': { size: '2.25rem', lineHeight: '2.5rem' }, // 36px / 40px
+  '5xl': { size: '3rem', lineHeight: '1' }, // 48px / 48px
+  '6xl': { size: '3.75rem', lineHeight: '1' }, // 60px / 60px
+  '7xl': { size: '4.5rem', lineHeight: '1' }, // 72px / 72px
+  '8xl': { size: '6rem', lineHeight: '1' }, // 96px / 96px
+  '9xl': { size: '8rem', lineHeight: '1' }, // 128px / 128px
 };
 
 // Letter spacing
@@ -94,7 +96,7 @@ export const textStyles = {
       fontWeight: fontWeights.bold,
     },
   },
-  
+
   // Heading styles
   heading: {
     '2xl': {
@@ -123,7 +125,7 @@ export const textStyles = {
       fontWeight: fontWeights.semibold,
     },
   },
-  
+
   // Body styles
   body: {
     lg: {
@@ -142,7 +144,7 @@ export const textStyles = {
       fontWeight: fontWeights.normal,
     },
   },
-  
+
   // Caption/small text
   caption: {
     fontSize: fontSizes.xs.size,
@@ -151,6 +153,13 @@ export const textStyles = {
     letterSpacing: letterSpacing.wide,
   },
 };
+
+// Alignment and layout for names
+export const leftColumn = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'flex-start',
+} as const;
 
 export type Fonts = typeof fonts;
 export type FontWeights = typeof fontWeights;

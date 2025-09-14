@@ -1,5 +1,6 @@
 import { Inter } from 'next/font/google';
 import './globals.css';
+import '../styles/fonts.css';
 import { StoreProvider } from '@/stores/StoreProvider';
 import ThrowableNavigation from './components/ThrowableNavigation';
 import BackgroundElements from './components/BackgroundElements';

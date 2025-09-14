@@ -3,7 +3,7 @@ export const colors = {
   // Primary colors
   white: '#FFFFFF',
   black: '#000000',
-  
+
   // Gray scale
   gray: {
     50: '#FAFAFA',
@@ -17,26 +17,27 @@ export const colors = {
     800: '#424242',
     900: '#212121',
   },
-  
+
   // Brand colors
   brand: {
-    primary: '#8B7D6B',     // Warm brown tone
-    secondary: '#A09280',    // Light brown
-    accent: '#B4A694',       // Beige
-    light: '#C8BEA8',        // Light beige
+    primary: '#8B7D6B', // Warm brown tone
+    secondary: '#A09280', // Light brown
+    accent: '#B4A694', // Beige
+    light: '#C8BEA8', // Light beige
+    metallicBeige: '#D4C4A8', // Metallic beige for text
   },
 
   // Saturn theme colors
   saturn: {
-    lightest: '#f5f1e8',    // Light cream
-    light: '#ede4d3',       // Warm ivory  
-    medium: '#e8dcc6',      // Soft beige
-    dark: '#ddd0bb',        // Muted tan
-    darkest: '#d4c4a8',     // Rich warm tan
-    frame: '#c9b896',       // Frame accent
-    frameAlt: '#beac84',    // Frame variation
+    lightest: '#f5f1e8', // Light cream
+    light: '#ede4d3', // Warm ivory
+    medium: '#e8dcc6', // Soft beige
+    dark: '#ddd0bb', // Muted tan
+    darkest: '#d4c4a8', // Rich warm tan
+    frame: '#c9b896', // Frame accent
+    frameAlt: '#beac84', // Frame variation
   },
-  
+
   // Semantic colors
   text: {
     primary: '#171717',
@@ -44,7 +45,7 @@ export const colors = {
     tertiary: '#9E9E9E',
     inverse: '#FFFFFF',
   },
-  
+
   // Background colors
   background: {
     primary: '#FFFFFF',
@@ -52,7 +53,7 @@ export const colors = {
     tertiary: '#F5F5F5',
     overlay: 'rgba(0, 0, 0, 0.5)',
   },
-  
+
   // Status colors
   success: '#4CAF50',
   warning: '#FF9800',

@@ -42,8 +42,10 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
         const ox = wordX.get();
 
         // Floor collision - allow dropping 200px lower (350px total from edge)
-        const floorY = Math.min(window.innerHeight + 50, oy + 200);
-        const finalX = Math.max(100, Math.min(window.innerWidth - 100, ox + vx * 20)); // Keep in bounds
+        const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
+        const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
+        const floorY = Math.min(screenHeight + 50, oy + 200);
+        const finalX = Math.max(100, Math.min(screenWidth - 100, ox + vx * 20)); // Keep in bounds
 
         // Animate the fall with gravity-like physics
         wordX.start({
@@ -67,9 +69,9 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
       from: () => [wordX.get(), wordY.get()],
       bounds: {
         left: -200, // Don't let words go too far left
-        right: window.innerWidth - 200, // Keep visible on right
+        right: typeof window !== 'undefined' ? window.innerWidth - 200 : 1200, // Keep visible on right
         top: -50, // Allow dragging to top of page
-        bottom: window.innerHeight + 100, // Allow dropping 200px lower
+        bottom: typeof window !== 'undefined' ? window.innerHeight + 100 : 900, // Allow dropping 200px lower
       },
     }
   );
@@ -78,8 +80,10 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
     setIsScattered(true);
 
     // Keep scatter within screen bounds - allow scatter even when word is below screen
-    const boundedCenterX = Math.max(150, Math.min(window.innerWidth - 150, centerX));
-    const boundedCenterY = Math.max(100, Math.min(window.innerHeight + 50, centerY)); // Allow lower scatter
+    const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
+    const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
+    const boundedCenterX = Math.max(150, Math.min(screenWidth - 150, centerX));
+    const boundedCenterY = Math.max(100, Math.min(screenHeight + 50, centerY)); // Allow lower scatter
 
     const letters = word.split('').map((letter, index) => {
       // Scatter letters like rubber balls but keep them visible
@@ -93,8 +97,8 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
         letter,
         index,
         // Keep letters within reasonable bounds but allow lower position
-        x: Math.max(50, Math.min(window.innerWidth - 50, scatterX)),
-        y: Math.max(50, Math.min(window.innerHeight + 50, scatterY)),
+        x: Math.max(50, Math.min(screenWidth - 50, scatterX)),
+        y: Math.max(50, Math.min(screenHeight + 50, scatterY)),
       };
     });
 

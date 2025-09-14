@@ -28,6 +28,23 @@ export default function RootLayout({
           )`
         }}
       >
+        {/* Saturn-colored frame border */}
+        <div 
+          className='fixed inset-0 pointer-events-none z-50'
+          style={{
+            margin: '20px',
+            border: '1px solid #d4c4a8',
+            borderImage: `linear-gradient(45deg, 
+              #d4c4a8 0%, 
+              #c9b896 25%, 
+              #d4c4a8 50%, 
+              #beac84 75%, 
+              #d4c4a8 100%
+            ) 1`,
+            borderRadius: '2px',
+          }}
+        />
+        
         <StoreProvider>
           <BackgroundElements />
           <ThrowableNavigation />

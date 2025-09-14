@@ -105,6 +105,49 @@ class AnimationStore {
     this.background.spherePosition = { ...position }
   }
 
+  // Gravitational influence methods
+  calculateGravitationalPull(elementPosition: Position, elementRadius: number = 50) {
+    const dx = this.background.spherePosition.x - elementPosition.x
+    const dy = this.background.spherePosition.y - elementPosition.y
+    const distance = Math.sqrt(dx * dx + dy * dy)
+    
+    // Sphere has influence radius
+    const sphereRadius = 150 // Base influence radius
+    const maxInfluence = sphereRadius + elementRadius
+    
+    if (distance < maxInfluence && distance > 0) {
+      // Calculate gravitational strength (stronger closer to sphere)
+      const influence = 1 - (distance / maxInfluence)
+      const pullStrength = influence * 25 // Max pull strength
+      
+      // Calculate pull direction (toward sphere center)
+      const pullX = (dx / distance) * pullStrength
+      const pullY = (dy / distance) * pullStrength
+      
+      return { 
+        pullX, 
+        pullY, 
+        influence, 
+        distance,
+        isInGravityField: true 
+      }
+    }
+    
+    return { 
+      pullX: 0, 
+      pullY: 0, 
+      influence: 0, 
+      distance,
+      isInGravityField: false 
+    }
+  }
+
+  // Check if element is in gravity field (for visual feedback)
+  isInGravityField(elementPosition: Position, elementRadius: number = 50) {
+    const gravity = this.calculateGravitationalPull(elementPosition, elementRadius)
+    return gravity.isInGravityField
+  }
+
   // Letter actions (for future complex animations)
   setScatterMode(active: boolean) {
     this.letters.scatterMode = active

@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { animated, useSpringValue, useSpring } from '@react-spring/web';
 import { useDrag } from '@use-gesture/react';
 import { animationStore } from '@/stores/AnimationStore';
@@ -28,9 +28,68 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
   const wordX = useSpringValue(initialX);
   const wordY = useSpringValue(initialY);
   const wordScale = useSpringValue(1);
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Gravitational influence effect - continuous attraction to sphere
+  useEffect(() => {
+    let animationFrame: number;
+    
+    const applyGravity = () => {
+      if (!isDragging && !isScattered) {
+        const currentX = wordX.get();
+        const currentY = wordY.get();
+        
+        // Calculate gravitational pull from sphere
+        const gravity = animationStore.calculateGravitationalPull(
+          { x: currentX, y: currentY }, 
+          80 // Word radius for influence calculation
+        );
+        
+        if (gravity.isInGravityField) {
+          // Apply subtle gravitational drift toward sphere
+          const newX = currentX + gravity.pullX * 0.3; // Gentle pull
+          const newY = currentY + gravity.pullY * 0.3;
+          
+          wordX.start({ 
+            to: newX, 
+            config: { tension: 50, friction: 30, mass: 2 } // Slow, smooth drift
+          });
+          wordY.start({ 
+            to: newY, 
+            config: { tension: 50, friction: 30, mass: 2 }
+          });
+          
+          // Scale effect when in gravity field
+          const scaleEffect = 1 + gravity.influence * 0.05; // Subtle grow
+          wordScale.start({
+            to: scaleEffect,
+            config: { tension: 100, friction: 25 }
+          });
+        } else {
+          // Return to normal scale when outside gravity field
+          wordScale.start({
+            to: 1,
+            config: { tension: 100, friction: 25 }
+          });
+        }
+      }
+      
+      animationFrame = requestAnimationFrame(applyGravity);
+    };
+    
+    applyGravity();
+    
+    return () => {
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+      }
+    };
+  }, [wordX, wordY, wordScale, isDragging, isScattered]);
 
   const bind = useDrag(
     ({ active, movement: [mx, my], offset: [ox, oy], velocity: [vx, vy] }) => {
+      setIsDragging(active);
+      
       if (active) {
         // Dragging the word - use movement from initial position
         wordX.set(initialX + mx);
@@ -159,30 +218,63 @@ interface ScatteredLetterProps {
 }
 
 const ScatteredLetter = ({ letter, x, y }: ScatteredLetterProps) => {
+  const [currentX, setCurrentX] = useState(x);
+  const [currentY, setCurrentY] = useState(y);
+
+  // Apply gravitational influence to scattered letters
+  useEffect(() => {
+    let animationFrame: number;
+    
+    const applyGravityToLetter = () => {
+      const gravity = animationStore.calculateGravitationalPull(
+        { x: currentX, y: currentY }, 
+        20 // Small radius for letters
+      );
+      
+      if (gravity.isInGravityField) {
+        // Letters get pulled toward sphere during scatter
+        const newX = currentX + gravity.pullX * 0.2; // Gentle pull
+        const newY = currentY + gravity.pullY * 0.2;
+        setCurrentX(newX);
+        setCurrentY(newY);
+      }
+      
+      animationFrame = requestAnimationFrame(applyGravityToLetter);
+    };
+    
+    applyGravityToLetter();
+    
+    return () => {
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+      }
+    };
+  }, [currentX, currentY]);
+
   const {
     x: springX,
     y: springY,
     rotation,
     scale,
   } = useSpring({
-    from: { x, y, rotation: 0, scale: 1 },
+    from: { x: currentX, y: currentY, rotation: 0, scale: 1 },
     to: async (next) => {
-      // Bounce in place at the scattered position - don't move horizontally
+      // Bounce sequence with gravitational influence
       await next({
-        x, // Stay at scattered X position
-        y: y - 25 - Math.random() * 20, // Bounce up from scattered position
+        x: currentX, // Use gravity-influenced position
+        y: currentY - 25 - Math.random() * 20, // Bounce up
         rotation: (Math.random() - 0.5) * 180, // Random rotation
         scale: 1.15,
       });
       await next({
-        x, // Stay at scattered X position
-        y: y + 5, // Quick drop from scattered position
+        x: currentX, // Gravity keeps influencing
+        y: currentY + 5, // Quick drop
         scale: 0.9,
         rotation: (Math.random() - 0.5) * 90,
       });
       await next({
-        x, // Final position is the scattered X
-        y, // Final position is the scattered Y
+        x: currentX, // Final gravity-influenced position
+        y: currentY, // Final position
         scale: 1,
         rotation: (Math.random() - 0.5) * 45, // Small final rotation
       });

@@ -30,9 +30,9 @@ const BackgroundElements = observer(() => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       time += 0.008; // Slow, organic movement
 
-      // Sphere size - responsive and subtle
-      const baseRadius = Math.min(window.innerWidth, window.innerHeight) * 0.12;
-      const radius = baseRadius + Math.sin(time * 0.5) * 8; // Subtle pulsing
+      // Sphere size - responsive and bigger
+      const baseRadius = Math.min(window.innerWidth, window.innerHeight) * 0.24; // Doubled from 0.12
+      const radius = baseRadius + Math.sin(time * 0.5) * 16; // Doubled pulsing too
 
       // Full screen orbital movement - wide sweeping patterns
       const centerX = canvas.width * 0.5; // Center of screen
@@ -111,7 +111,7 @@ const BackgroundElements = observer(() => {
         ];
         
         const color = colors[Math.floor(Math.random() * colors.length)];
-        const dotSize = (Math.random() * 2 + 0.5) * depthFactor; // Smaller dots fade toward edges
+        const dotSize = (Math.random() * 6 + 2) * depthFactor; // Bigger dots: 2-8px range
         
         // Add slight animation to dots - ensure always positive
         const animatedSize = Math.max(0.1, dotSize + Math.sin(time * 3 + i * 0.1) * 0.2);
@@ -120,19 +120,6 @@ const BackgroundElements = observer(() => {
         ctx.beginPath();
         ctx.arc(dotX, dotY, animatedSize, 0, Math.PI * 2);
         ctx.fill();
-      }
-      
-      // Add subtle atmospheric bands like Saturn's rings (projected on sphere)
-      const bandCount = 3;
-      for (let b = 0; b < bandCount; b++) {
-        const bandY = sphereY - radius + (radius * 2 * (b + 1) / (bandCount + 1));
-        const bandWidth = Math.sqrt(radius * radius - (bandY - sphereY) * (bandY - sphereY)) * 2;
-        
-        if (bandWidth > 0) {
-          const bandAlpha = 0.3 + Math.sin(time + b) * 0.1; // More visible bands
-          ctx.fillStyle = `rgba(255, 215, 120, ${bandAlpha})`;
-          ctx.fillRect(sphereX - bandWidth / 2, bandY - 2, bandWidth, 4); // Thicker bands
-        }
       }
       
       ctx.restore();

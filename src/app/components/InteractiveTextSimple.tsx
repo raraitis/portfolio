@@ -37,23 +37,26 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
         wordScale.start({ to: 1.1, config: { tension: 400, friction: 20 } }); // More responsive
         animationStore.updateBackgroundIntensity();
       } else {
-        // Not actively dragging - apply gravity straight down
+        // Not actively dragging - apply gravity with visible drop
         const oy = wordY.get();
         const ox = wordX.get(); // Keep current X position - drop straight down
 
         // Floor collision - allow dropping 200px lower
         const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
         const floorY = Math.min(screenHeight + 50, oy + 200);
+        const dropDistance = floorY - oy;
 
-        // Drop straight down - no horizontal movement
+        // Animate the drop with visible gravity
         wordY.start({
           to: floorY,
-          config: { tension: 120, friction: 12, mass: 1.5 }, // More fluid gravity
-          onRest: () => {
-            // HIT THE FLOOR! Scatter into letters immediately - no delay
-            scatterWord(ox, floorY);
-          },
+          config: { tension: 60, friction: 12, mass: 2 }, // Visible drop with gravity feel
         });
+
+        // Scatter when word has dropped about 60% of the way - so you see the drop AND the scatter
+        const scatterDelay = Math.max(100, Math.min(400, dropDistance * 2)); // Proportional to drop distance
+        setTimeout(() => {
+          scatterWord(ox, oy + dropDistance * 0.6); // Scatter from 60% down position
+        }, scatterDelay);
 
         animationStore.updateBackgroundIntensity();
       }
@@ -67,11 +70,13 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
   const scatterWord = (centerX: number, centerY: number) => {
     setIsScattered(true);
 
-    // Keep scatter within screen bounds
+    // Scatter exactly from where the word was dropped - no bounds adjustment
     const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
     const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
-    const boundedCenterX = Math.max(150, Math.min(screenWidth - 150, centerX));
-    const boundedCenterY = Math.max(100, Math.min(screenHeight + 50, centerY));
+    
+    // Use exact drop position, no bounding to center
+    const scatterCenterX = centerX;
+    const scatterCenterY = centerY;
 
     const letters = word.split('').map((letter, index) => {
       // Random rubber ball scatter - completely random directions and distances
@@ -79,13 +84,13 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
       const randomDistance = 40 + Math.random() * 120; // Variable distances
       const randomVertical = (Math.random() - 0.5) * 100; // Random vertical bounce
       
-      const scatterX = boundedCenterX + Math.cos(randomAngle) * randomDistance;
-      const scatterY = boundedCenterY + Math.sin(randomAngle) * randomDistance + randomVertical;
+      const scatterX = scatterCenterX + Math.cos(randomAngle) * randomDistance;
+      const scatterY = scatterCenterY + Math.sin(randomAngle) * randomDistance + randomVertical;
 
       return {
         letter,
         index,
-        // Allow wider scatter area for more natural rubber ball effect
+        // Keep letters on screen but allow wider scatter
         x: Math.max(30, Math.min(screenWidth - 30, scatterX)),
         y: Math.max(30, Math.min(screenHeight + 50, scatterY)),
       };

@@ -215,7 +215,7 @@ export default function InteractiveText() {
   return (
     <>
       {/* Gradient Line - Left side of name */}
-      <GradientLine position="left" offsetX={-500} />
+      <GradientLine position='left' />
 
       {/* Interactive word area */}
       <div className='fixed inset-0 overflow-hidden'>

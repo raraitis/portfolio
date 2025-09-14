@@ -30,7 +30,7 @@ const BackgroundElements = observer(() => {
 
     const createStaticPattern = () => {
       staticDots.length = 0;
-      const density = 0.8;
+      const density = 1.2; // Increase density for better visibility
 
       for (let i = 0; i < (canvas.width * canvas.height * density) / 10000; i++) {
         const x = Math.random() * canvas.width;
@@ -97,7 +97,7 @@ const BackgroundElements = observer(() => {
         dot.y = dot.originalY + displacementY + Math.cos(time * 1.5 + dot.flickerPhase) * 0.5;
 
         const flicker = Math.sin(time * 5 + dot.flickerPhase) * 0.3 + 0.7;
-        const alpha = dot.intensity * baseIntensity * flicker;
+        const alpha = dot.intensity * baseIntensity * flicker * 0.8; // Increase visibility
 
         ctx.fillStyle = `rgba(139, 125, 107, ${alpha})`;
         ctx.beginPath();

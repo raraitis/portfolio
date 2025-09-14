@@ -34,31 +34,24 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
         // Dragging the word - use movement from initial position
         wordX.set(initialX + mx);
         wordY.set(initialY + my);
-        wordScale.start({ to: 1.1, config: { tension: 300, friction: 30 } });
+        wordScale.start({ to: 1.1, config: { tension: 400, friction: 20 } }); // More responsive
         animationStore.updateBackgroundIntensity();
       } else {
-        // Not actively dragging - apply gravity
+        // Not actively dragging - apply gravity straight down
         const oy = wordY.get();
-        const ox = wordX.get();
+        const ox = wordX.get(); // Keep current X position - drop straight down
 
-        // Floor collision - allow dropping 200px lower (350px total from edge)
+        // Floor collision - allow dropping 200px lower
         const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
-        const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
         const floorY = Math.min(screenHeight + 50, oy + 200);
-        const finalX = Math.max(100, Math.min(screenWidth - 100, ox + vx * 20)); // Keep in bounds
 
-        // Animate the fall with gravity-like physics
-        wordX.start({
-          to: finalX,
-          config: { tension: 100, friction: 15 },
-        });
-
+        // Drop straight down - no horizontal movement
         wordY.start({
           to: floorY,
-          config: { tension: 60, friction: 10, mass: 2 }, // Heavy gravity fall
+          config: { tension: 120, friction: 12, mass: 1.5 }, // More fluid gravity
           onRest: () => {
-            // HIT THE FLOOR! Scatter into letters immediately
-            scatterWord(finalX, floorY);
+            // HIT THE FLOOR! Scatter into letters immediately - no delay
+            scatterWord(ox, floorY);
           },
         });
 
@@ -74,47 +67,48 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
   const scatterWord = (centerX: number, centerY: number) => {
     setIsScattered(true);
 
-    // Keep scatter within screen bounds - allow scatter even when word is below screen
+    // Keep scatter within screen bounds
     const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
     const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
     const boundedCenterX = Math.max(150, Math.min(screenWidth - 150, centerX));
-    const boundedCenterY = Math.max(100, Math.min(screenHeight + 50, centerY)); // Allow lower scatter
+    const boundedCenterY = Math.max(100, Math.min(screenHeight + 50, centerY));
 
     const letters = word.split('').map((letter, index) => {
-      // Scatter letters like rubber balls but keep them visible
-      const angle = (index / word.length) * Math.PI * 2 + (Math.random() - 0.5) * 1.0;
-      const distance = 60 + Math.random() * 80; // Smaller scatter to stay visible
+      // Random rubber ball scatter - completely random directions and distances
+      const randomAngle = Math.random() * Math.PI * 2; // Full 360 degrees
+      const randomDistance = 40 + Math.random() * 120; // Variable distances
+      const randomVertical = (Math.random() - 0.5) * 100; // Random vertical bounce
       
-      const scatterX = boundedCenterX + Math.cos(angle) * distance;
-      const scatterY = boundedCenterY + Math.sin(angle) * distance - Math.random() * 30;
+      const scatterX = boundedCenterX + Math.cos(randomAngle) * randomDistance;
+      const scatterY = boundedCenterY + Math.sin(randomAngle) * randomDistance + randomVertical;
 
       return {
         letter,
         index,
-        // Keep letters within reasonable bounds but allow lower position
-        x: Math.max(50, Math.min(screenWidth - 50, scatterX)),
-        y: Math.max(50, Math.min(screenHeight + 50, scatterY)),
+        // Allow wider scatter area for more natural rubber ball effect
+        x: Math.max(30, Math.min(screenWidth - 30, scatterX)),
+        y: Math.max(30, Math.min(screenHeight + 50, scatterY)),
       };
     });
 
     setScatteredLetters(letters);
 
-    // Start magnet-like reassembly after 1 second - letters come back one by one
+    // Reduced delay - magnet reassembly starts faster
     setTimeout(() => {
       setIsScattered(false);
       setScatteredLetters([]);
       
-      // Magnet pull - slow return to original position
+      // Faster, more fluid magnet pull
       wordX.start({ 
         to: initialX, 
-        config: { tension: 80, friction: 30, mass: 1.5 } // Slower, more magnetic
+        config: { tension: 120, friction: 25, mass: 1 } // Faster return
       });
       wordY.start({ 
         to: initialY, 
-        config: { tension: 80, friction: 30, mass: 1.5 } 
+        config: { tension: 120, friction: 25, mass: 1 } 
       });
-      wordScale.start({ to: 1, config: { tension: 100, friction: 25 } });
-    }, 2000); // Longer display time
+      wordScale.start({ to: 1, config: { tension: 150, friction: 20 } });
+    }, 1500); // Shorter display time
   };
 
   if (isScattered) {
@@ -170,28 +164,26 @@ const ScatteredLetter = ({ letter, x, y }: ScatteredLetterProps) => {
   } = useSpring({
     from: { x, y, rotation: 0, scale: 1 },
     to: async (next) => {
-      // Multiple bounce sequence for rubber ball effect
+      // More dynamic rubber ball bounce sequence
       await next({
-        x,
-        y: y - 30, // Bounce up first
-        rotation: (Math.random() - 0.5) * 360,
-        scale: 1.1,
+        x: x + (Math.random() - 0.5) * 20, // Random horizontal wobble
+        y: y - 25 - Math.random() * 20, // Variable bounce height
+        rotation: (Math.random() - 0.5) * 180, // Random rotation
+        scale: 1.15,
       });
       await next({
-        y: y + 10, // Come down
-        scale: 0.95,
-      });
-      await next({
-        y: y - 15, // Smaller bounce
-        scale: 1.05,
-      });
-      await next({
-        y, // Settle
-        scale: 1,
+        y: y + 5, // Quick drop
+        scale: 0.9,
         rotation: (Math.random() - 0.5) * 90,
       });
+      await next({
+        x, // Settle to final position
+        y,
+        scale: 1,
+        rotation: (Math.random() - 0.5) * 45, // Small final rotation
+      });
     },
-    config: { tension: 200, friction: 25 },
+    config: { tension: 250, friction: 20 }, // More responsive bounce
   });
 
   return (

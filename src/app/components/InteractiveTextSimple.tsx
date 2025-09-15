@@ -6,10 +6,8 @@ import { useDrag } from '@use-gesture/react';
 import {
   useAnimationState,
   useAnimationActions,
-  calculateGravitationalPull,
 } from '@/contexts/AnimationContext';
-import { styles, nameText, nameTextMobile } from '../../styles';
-import GradientLine from './GradientLine';
+import { nameText, nameTextMobile } from '../../styles';
 
 interface WordProps {
   word: string;

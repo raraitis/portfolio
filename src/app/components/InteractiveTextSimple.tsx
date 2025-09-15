@@ -3,7 +3,11 @@
 import { useRef, useState, useEffect } from 'react';
 import { animated, useSpringValue, useSpring } from '@react-spring/web';
 import { useDrag } from '@use-gesture/react';
-import { animationStore } from '@/stores/AnimationStore';
+import {
+  useAnimationState,
+  useAnimationActions,
+  calculateGravitationalPull,
+} from '@/contexts/AnimationContext';
 import { styles, nameText, nameTextMobile } from '../../styles';
 import GradientLine from './GradientLine';
 
@@ -25,6 +29,10 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
     }>
   >([]);
   const [isMobile, setIsMobile] = useState(false);
+
+  // Animation context hooks
+  const animationState = useAnimationState();
+  const animationActions = useAnimationActions();
 
   const wordX = useSpringValue(initialX); // Start directly at final position
   const wordY = useSpringValue(initialY);
@@ -59,7 +67,7 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
         wordX.set(initialX + mx);
         wordY.set(initialY + my);
         wordScale.start({ to: 1.1, config: { tension: 400, friction: 20 } }); // More responsive
-        animationStore.updateBackgroundIntensity();
+        animationActions.updateBackgroundIntensity();
       } else {
         // Not actively dragging - apply gravity with visible drop
         const oy = wordY.get();
@@ -83,7 +91,7 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
           scatterWord(ox, oy + dropDistance * 0.6); // Scatter from 60% down position
         }, scatterDelay);
 
-        animationStore.updateBackgroundIntensity();
+        animationActions.updateBackgroundIntensity();
       }
     },
     {

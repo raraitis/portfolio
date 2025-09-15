@@ -1,14 +1,13 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { observer } from 'mobx-react-lite';
-import { animationStore } from '@/stores/AnimationStore';
+import { useAnimationActions } from '@/contexts/AnimationContext';
 import { styles } from '../../styles';
-import { leftColumn } from '@/styles/typography';
 
-const BackgroundElements = observer(() => {
+const BackgroundElements = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [currentSection, setCurrentSection] = useState<'home' | 'me'>('home');
+  const animationActions = useAnimationActions();
 
   // Listen for global section changes
   useEffect(() => {
@@ -101,21 +100,57 @@ const BackgroundElements = observer(() => {
       orbitEccentricity: number;
       spinSpeed: number;
       spinDirection: number;
+      moons: {
+        count: number;
+        distances: number[];
+        speeds: number[];
+        angles: number[];
+        sizes: number[];
+        tilts: number[];
+        inclinations: number[];
+      };
     }[] = [];
     for (let p = 0; p < planetCount; p++) {
       const angle = Math.random() * Math.PI * 2;
-      const baseRadius = 0.4 + Math.random() * 0.8; // Larger orbit radius for more visible movement (0.4 - 1.2)
+      const baseRadius = 0.6 + Math.random() * 1.0; // Increased orbit radius for more visible movement (0.6 - 1.6)
       planetDots.push({
         x: Math.cos(angle) * baseRadius,
         y: Math.sin(angle) * baseRadius,
         size: 2.5 + Math.random() * 2.5,
         angle,
         baseRadius,
-        orbitSpeed: 0.04 + Math.random() * 0.08, // Very slow orbital speeds for subtle movement (0.04 - 0.12)
-        orbitTilt: Math.random() * Math.PI * 0.8, // Random tilt from horizontal to near-vertical
-        orbitEccentricity: 0.7 + Math.random() * 0.3, // Slight elliptical orbits
+        orbitSpeed: 0.15 + Math.random() * 0.25, // Much faster orbital speeds for visible movement (0.15 - 0.4)
+        orbitTilt: Math.random() * Math.PI * 1.2, // More dramatic tilt variation
+        orbitEccentricity: 0.5 + Math.random() * 0.5, // More dramatic elliptical orbits (0.5 - 1.0)
         spinSpeed: 0.1 + Math.random() * 0.4, // Varied spin speeds (0.1 - 0.5)
         spinDirection: Math.random() < 0.5 ? 1 : -1, // Random spin direction
+        moons: {
+          count: 2, // Always 2 moons for each RED dot
+          distances: [
+            3.0 + Math.random() * 2.0, // First moon distance (3.0-5.0)
+            5.5 + Math.random() * 2.5, // Second moon distance (5.5-8.0)
+          ],
+          speeds: [
+            0.3 + Math.random() * 0.4, // First moon speed (0.3-0.7)
+            0.2 + Math.random() * 0.3, // Second moon speed (0.2-0.5, slower)
+          ],
+          angles: [
+            Math.random() * Math.PI * 2, // Random starting angle for first moon
+            Math.random() * Math.PI * 2, // Random starting angle for second moon
+          ],
+          sizes: [
+            0.3 + Math.random() * 0.4, // First moon size (0.3-0.7)
+            0.4 + Math.random() * 0.5, // Second moon size (0.4-0.9)
+          ],
+          tilts: [
+            Math.random() * Math.PI, // First moon orbital tilt (0 = horizontal, π/2 = vertical)
+            Math.random() * Math.PI, // Second moon orbital tilt (independent)
+          ],
+          inclinations: [
+            Math.random() * Math.PI * 2, // First moon orbital inclination (rotation around Y)
+            Math.random() * Math.PI * 2, // Second moon orbital inclination
+          ],
+        },
       });
     }
 
@@ -142,7 +177,7 @@ const BackgroundElements = observer(() => {
         tilts: number[];
       };
     }[] = [];
-    const orbitalBigDotCount = 4 + Math.floor(Math.random() * 3); // 4-6 orbital BIG dots (reverted)
+    const orbitalBigDotCount = 5 + Math.floor(Math.random() * 3); // 5-7 orbital BIG dots (increased by 1)
     for (let o = 0; o < orbitalBigDotCount; o++) {
       // Add moons to ALL orbital BIG dots (100% chance)
       const hasMoons = true; // All orbital BIG dots will have moons
@@ -165,17 +200,36 @@ const BackgroundElements = observer(() => {
         }
       }
 
+      // Check if this is the last (extra) orbital dot to make it bigger
+      const isExtraBigDot = o === orbitalBigDotCount - 1;
+
+      // Special moon configuration for the biggest BLUE dot
+      if (isExtraBigDot && moons) {
+        // Override moons for biggest blue dot - give it exactly 2 moons of same color
+        moons.count = 2;
+        moons.angles = [0, Math.PI]; // Start opposite each other
+        moons.distances = [1.5, 2.2]; // Different distances
+        moons.speeds = [0.4, 0.25]; // Different speeds
+        moons.tilts = [0, 0]; // Both horizontal
+      }
+
       orbitalBigDots.push({
         x: 0,
         y: 0,
         z: 0, // Initialize Z coordinate
-        size: 3 + Math.random() * 3, // Slightly larger than regular BIG dots
-        orbitRadius: 1.4 + Math.random() * 0.6, // Moon orbit distance (1.4-2.0 times sphere radius)
-        orbitSpeed: 0.08 + Math.random() * 0.12, // Reduced orbital BIG dots speed (0.08-0.2)
+        size: isExtraBigDot ? 8 + Math.random() * 4 : 3 + Math.random() * 3, // Extra big dot: 8-12, normal: 3-6
+        orbitRadius: isExtraBigDot
+          ? 2.2 + Math.random() * 0.8
+          : 1.4 + Math.random() * 0.6, // Extra big dot farther out: 2.2-3.0, normal: 1.4-2.0
+        orbitSpeed: isExtraBigDot
+          ? 0.05 + Math.random() * 0.08
+          : 0.08 + Math.random() * 0.12, // Extra big dot slower: 0.05-0.13, normal: 0.08-0.2
         orbitAngle: Math.random() * Math.PI * 2, // Random starting angle
-        orbitTilt: Math.random() * Math.PI, // Orbital plane tilt (0 = horizontal, π/2 = vertical)
+        orbitTilt: isExtraBigDot
+          ? 0.1 + Math.random() * 0.1
+          : Math.random() * Math.PI, // Extra big dot: small horizontal angle (0.1-0.2), normal: random
         orbitRotation: Math.random() * Math.PI * 2, // Rotation of orbital plane around Y-axis
-        orbitInclination: Math.random() * Math.PI, // Inclination of orbital plane for full 3D
+        orbitInclination: isExtraBigDot ? 0 : Math.random() * Math.PI, // Extra big dot: horizontal (0), normal: random 3D
         orbitDirection: Math.random() < 0.5 ? 1 : -1, // Random direction
         spinSpeed: 0.15 + Math.random() * 0.5, // Varied spin speeds (0.15 - 0.65)
         spinDirection: Math.random() < 0.5 ? 1 : -1, // Random spin direction
@@ -317,7 +371,7 @@ const BackgroundElements = observer(() => {
       const radius = perspectiveRadius;
 
       // Update store for interactions
-      animationStore.updateSpherePosition({ x: sphereX, y: sphereY });
+      animationActions.updateSpherePosition({ x: sphereX, y: sphereY });
 
       // Draw Saturn-like sphere with dotted atmospheric texture
       ctx.save();
@@ -330,9 +384,9 @@ const BackgroundElements = observer(() => {
         const baseVariation = Math.sin(angle * 6) * 0.05; // 6 subtle bumps
         const detailVariation = Math.sin(angle * 18) * 0.02; // Fine details
         const timeVariation = Math.sin(time * 2 + angle * 3) * 0.03; // Gentle breathing
-        // Extended boundary for softer clipping (1.15x larger than visible sphere)
+        // Extended boundary for softer clipping (3.45x larger than visible sphere - 3x increase)
         return (
-          radius * 1.15 * (1 + baseVariation + detailVariation + timeVariation)
+          radius * 3.45 * (1 + baseVariation + detailVariation + timeVariation)
         );
       };
 
@@ -519,14 +573,20 @@ const BackgroundElements = observer(() => {
         // Animate planet position with varied orbital patterns
         const planetAngle = time * planet.orbitSpeed + planet.angle;
 
-        // Create elliptical orbit with tilt
-        const ellipseX = Math.cos(planetAngle) * planet.baseRadius;
-        const ellipseY =
-          Math.sin(planetAngle) * planet.baseRadius * planet.orbitEccentricity;
+        // Add dynamic orbital radius variation for more visible movement
+        const radiusVariation = Math.sin(time * 0.8 + pIdx * 2) * 0.15; // ±15% radius variation
+        const dynamicRadius = planet.baseRadius * (1 + radiusVariation);
 
-        // Apply orbital tilt (rotation around Z-axis)
-        const tiltCos = Math.cos(planet.orbitTilt);
-        const tiltSin = Math.sin(planet.orbitTilt);
+        // Create elliptical orbit with tilt and dynamic radius
+        const ellipseX = Math.cos(planetAngle) * dynamicRadius;
+        const ellipseY =
+          Math.sin(planetAngle) * dynamicRadius * planet.orbitEccentricity;
+
+        // Apply orbital tilt (rotation around Z-axis) with slight wobble
+        const dynamicTilt =
+          planet.orbitTilt + Math.sin(time * 0.3 + pIdx) * 0.1;
+        const tiltCos = Math.cos(dynamicTilt);
+        const tiltSin = Math.sin(dynamicTilt);
         const tiltedX = ellipseX * tiltCos - ellipseY * tiltSin;
         const tiltedY = ellipseX * tiltSin + ellipseY * tiltCos;
 
@@ -587,10 +647,84 @@ const BackgroundElements = observer(() => {
 
           ctx.beginPath();
           ctx.arc(dotX, dotY, randSize, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(80, 70, 50, ${alpha})`; // Darker version of main sphere color
+          // ctx.fillStyle = `rgba(80, 70, 50, ${alpha})`; // Original: Darker version of main sphere color
+          // Add subtle shade variation for RED dots (back to brownish but slightly varied)
+          const redShade = 80 + (pIdx % 3) * 5; // Subtle variation: 80, 85, 90
+          const greenShade = 70 + (pIdx % 3) * 3; // Subtle variation: 70, 73, 76
+          const blueShade = 50 + (pIdx % 3) * 4; // Subtle variation: 50, 54, 58
+          ctx.fillStyle = `rgba(${redShade}, ${greenShade}, ${blueShade}, ${alpha})`;
           ctx.fill();
         }
-        // No connections or moons for BIG dots—just render the small dot pattern
+
+        // Render moons for this RED dot (planet)
+        if (planet.moons) {
+          for (let m = 0; m < planet.moons.count; m++) {
+            const moonAngle =
+              time * planet.moons.speeds[m] + planet.moons.angles[m];
+            const moonDistance = planet.moons.distances[m] * (planet.size * 2); // Scale with planet size
+
+            // Create 3D orbital mechanics for varied moon orbits
+            // Start with basic circular orbit in XZ plane
+            const basicX = Math.cos(moonAngle) * moonDistance;
+            const basicY = 0; // Start at equatorial plane
+            const basicZ = Math.sin(moonAngle) * moonDistance;
+
+            // Apply orbital tilt (inclination from horizontal to vertical)
+            const tilt = planet.moons.tilts[m];
+            const tiltCos = Math.cos(tilt);
+            const tiltSin = Math.sin(tilt);
+            const tiltedX = basicX;
+            const tiltedY = basicY * tiltCos - basicZ * tiltSin;
+            const tiltedZ = basicY * tiltSin + basicZ * tiltCos;
+
+            // Apply orbital inclination (rotation around Y-axis for varied orbital planes)
+            const inclination = planet.moons.inclinations[m];
+            const incCos = Math.cos(inclination);
+            const incSin = Math.sin(inclination);
+            const finalX = tiltedX * incCos - tiltedZ * incSin;
+            const finalY = tiltedY;
+            const finalZ = tiltedX * incSin + tiltedZ * incCos;
+
+            // Project to screen coordinates around the planet
+            const moonX = planetX + finalX;
+            const moonY = planetY + finalY;
+            const moonSize = planet.moons.sizes[m] * planet.size; // Scale moon with planet
+
+            // Apply depth-based effects (moons behind the planet are dimmer)
+            const depth = (finalZ + moonDistance) / (moonDistance * 2); // 0 to 1 range
+            const alpha = 0.5 + depth * 0.5; // Front moons brighter
+
+            // Draw moon with darker colors than parent RED dot
+            ctx.beginPath();
+            ctx.arc(moonX, moonY, moonSize, 0, Math.PI * 2);
+            // Make moons darker than their parent RED dot (using similar brownish tones but darker)
+            const redShade = 80 + (pIdx % 3) * 5; // Same variation as parent
+            const greenShade = 70 + (pIdx % 3) * 3;
+            const blueShade = 50 + (pIdx % 3) * 4;
+            // Make moon colors darker (reduce by ~30-40)
+            const moonRed = Math.max(20, redShade - 35);
+            const moonGreen = Math.max(15, greenShade - 30);
+            const moonBlue = Math.max(10, blueShade - 25);
+            
+            if (m === 0) {
+              ctx.fillStyle = `rgba(${moonRed + 10}, ${moonGreen + 5}, ${moonBlue}, ${alpha * 0.8})`; // Slightly different shade for first moon
+            } else {
+              ctx.fillStyle = `rgba(${moonRed}, ${moonGreen + 8}, ${moonBlue + 5}, ${alpha * 0.8})`; // Slightly different shade for second moon
+            }
+            ctx.fill();
+
+            // Add a subtle glow effect with depth (also darker)
+            ctx.beginPath();
+            ctx.arc(moonX, moonY, moonSize * 1.5, 0, Math.PI * 2);
+            if (m === 0) {
+              ctx.fillStyle = `rgba(${moonRed + 10}, ${moonGreen + 5}, ${moonBlue}, ${alpha * 0.2})`; // Darker glow
+            } else {
+              ctx.fillStyle = `rgba(${moonRed}, ${moonGreen + 8}, ${moonBlue + 5}, ${alpha * 0.2})`; // Darker glow
+            }
+            ctx.fill();
+          }
+        }
+
         planet.x = planetX;
         planet.y = planetY;
       });
@@ -733,12 +867,20 @@ const BackgroundElements = observer(() => {
 
           ctx.beginPath();
           ctx.arc(dotX, dotY, randSize * perspectiveScale, 0, Math.PI * 2); // Apply perspective scaling
-          ctx.fillStyle = `rgba(80, 70, 50, ${alpha})`;
+          // ctx.fillStyle = `rgba(80, 70, 50, ${alpha})`; // Original: Darker version of main sphere color
+          // Add subtle shade variation for BLUE dots (back to brownish but slightly varied)
+          const redShade = 80 + (oDx % 4) * 4; // Subtle variation: 80, 84, 88, 92
+          const greenShade = 70 + (oDx % 4) * 3; // Subtle variation: 70, 73, 76, 79
+          const blueShade = 50 + (oDx % 4) * 3; // Subtle variation: 50, 53, 56, 59
+          ctx.fillStyle = `rgba(${redShade}, ${greenShade}, ${blueShade}, ${alpha})`;
           ctx.fill();
         }
 
         // Render moons for this orbital BIG dot
         if (orbitalDot.moons) {
+          // Check if this is the biggest BLUE dot (last in array)
+          const isBiggestBlueDot = oDx === orbitalBigDots.length - 1;
+
           for (let m = 0; m < orbitalDot.moons.count; m++) {
             const moonAngle =
               time * orbitalDot.moons.speeds[m] + orbitalDot.moons.angles[m];
@@ -754,14 +896,33 @@ const BackgroundElements = observer(() => {
               Math.sin(moonAngle) * moonDistance * Math.sin(moonTilt);
 
             ctx.beginPath();
-            ctx.arc(
-              moonX,
-              moonY,
-              miniRadius * 0.08 * perspectiveScale,
-              0,
-              Math.PI * 2
-            ); // Smaller moons for orbital BIG dots
-            ctx.fillStyle = `rgba(120, 110, 90, ${0.9 * perspectiveAlpha})`; // Apply perspective alpha to moons
+            const moonSize = isBiggestBlueDot
+              ? miniRadius * 0.12 * perspectiveScale
+              : miniRadius * 0.08 * perspectiveScale; // Bigger moons for biggest blue dot
+            ctx.arc(moonX, moonY, moonSize, 0, Math.PI * 2);
+
+            // Make moon colors darker than their parent BLUE dots
+            if (isBiggestBlueDot) {
+              // For biggest blue dot: use darker version of parent color
+              const parentRed = 80 + (oDx % 4) * 4; // Same as parent
+              const parentGreen = 70 + (oDx % 4) * 3;
+              const parentBlue = 50 + (oDx % 4) * 3;
+              // Make darker (reduce by ~40)
+              const moonRed = Math.max(15, parentRed - 40);
+              const moonGreen = Math.max(10, parentGreen - 35);
+              const moonBlue = Math.max(5, parentBlue - 30);
+              ctx.fillStyle = `rgba(${moonRed}, ${moonGreen}, ${moonBlue}, ${0.9 * perspectiveAlpha})`;
+            } else {
+              // For normal orbital dots: darker version of parent color
+              const parentRed = 80 + (oDx % 4) * 4;
+              const parentGreen = 70 + (oDx % 4) * 3;
+              const parentBlue = 50 + (oDx % 4) * 3;
+              // Make darker (reduce by ~35)
+              const moonRed = Math.max(20, parentRed - 35);
+              const moonGreen = Math.max(15, parentGreen - 30);
+              const moonBlue = Math.max(10, parentBlue - 25);
+              ctx.fillStyle = `rgba(${moonRed}, ${moonGreen}, ${moonBlue}, ${0.9 * perspectiveAlpha})`;
+            }
             ctx.fill();
           }
         }
@@ -812,7 +973,7 @@ const BackgroundElements = observer(() => {
       />
     </>
   );
-});
+};
 
 BackgroundElements.displayName = 'BackgroundElements';
 

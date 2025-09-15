@@ -3,6 +3,70 @@
 
 import { SphereInfo } from '../types/backgroundTypes';
 
+// Enhanced canvas setup for better quality on iPhone
+export const setupHighQualityCanvas = (
+  canvas: HTMLCanvasElement, 
+  ctx: CanvasRenderingContext2D
+) => {
+  // Get device pixel ratio, but cap it to avoid performance issues
+  const devicePixelRatio = Math.min(window.devicePixelRatio || 1, 3); // Cap at 3x for Retina displays
+  
+  // Get the display size (CSS pixels)
+  const displayWidth = window.innerWidth;
+  const displayHeight = window.innerHeight;
+  
+  // Set the actual canvas size in pixels (for high DPI displays)
+  canvas.width = displayWidth * devicePixelRatio;
+  canvas.height = displayHeight * devicePixelRatio;
+  
+  // Scale the canvas back down using CSS
+  canvas.style.width = displayWidth + 'px';
+  canvas.style.height = displayHeight + 'px';
+  
+  // Scale the drawing context so everything draws at the correct size
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+  
+  // Enable high-quality rendering
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  
+  // Better text rendering (affects any text-like elements)
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'center';
+  
+  return devicePixelRatio;
+};
+
+// Enhanced dot rendering with better quality
+export const renderHighQualityDot = (
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  size: number,
+  color: string,
+  glow: boolean = false
+) => {
+  ctx.save();
+  
+  if (glow) {
+    // Add subtle shadow/glow for better visibility
+    ctx.shadowColor = color;
+    ctx.shadowBlur = size * 0.5;
+  }
+  
+  ctx.beginPath();
+  ctx.arc(x, y, size, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+  
+  // Add a subtle stroke for better definition on high-DPI displays
+  ctx.strokeStyle = `rgba(0, 0, 0, 0.1)`;
+  ctx.lineWidth = 0.5;
+  ctx.stroke();
+  
+  ctx.restore();
+};
+
 export const renderBackgroundPattern = (
   ctx: CanvasRenderingContext2D,
   canvas: HTMLCanvasElement,

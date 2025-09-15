@@ -2,18 +2,27 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useAnimationActions } from '@/contexts/AnimationContext';
+import { useDevice } from '../hooks/useDevice';
 import { styles } from '../../styles';
 import {
   renderBackgroundPattern,
   calculateSpherePositionAndSize,
   renderSphereGlow,
 } from '../helpers/backgroundHelpers';
+import {
+  setupMobileCanvas,
+  renderMobileBackgroundPattern,
+  calculateMobileSpherePositionAndSize,
+  renderMobileSphereGlow,
+  getMobileFrameRate,
+} from '../helpers/mobileBgHelpers';
 import { SphereInfo } from '../types/backgroundTypes';
 
 const BackgroundElements = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [currentSection, setCurrentSection] = useState<'home' | 'me'>('home');
   const animationActions = useAnimationActions();
+  const device = useDevice();
 
   // Listen for global section changes
   useEffect(() => {
@@ -37,6 +46,18 @@ const BackgroundElements = () => {
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+
+    // Detect mobile device and setup optimizations based on device capabilities
+    const isMobile = device.isMobile;
+    const isLowPowerDevice = device.hardwareConcurrency <= 4 || device.isMobile;
+    const targetFrameRate = isLowPowerDevice ? 30 : 60;
+    let lastFrameTime = 0;
+    const frameInterval = 1000 / targetFrameRate; // Convert to milliseconds
+
+    // Setup mobile canvas if needed
+    if (isMobile) {
+      setupMobileCanvas(canvas, ctx);
+    }
 
     let animationFrame: number;
     let time = 0;
@@ -322,20 +343,29 @@ const BackgroundElements = () => {
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
-    const animate = () => {
+    const animate = (currentTime: number = 0) => {
+      // Frame rate limiting for mobile performance
+      if (currentTime - lastFrameTime < frameInterval) {
+        animationFrame = requestAnimationFrame(animate);
+        return;
+      }
+      lastFrameTime = currentTime;
+
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Render background pattern using helper function
-      renderBackgroundPattern(ctx, canvas, time);
+      // Use mobile-optimized rendering if on mobile device
+      if (isMobile) {
+        renderMobileBackgroundPattern(ctx, canvas, time);
+      } else {
+        renderBackgroundPattern(ctx, canvas, time);
+      }
 
       time += 0.008; // Slow, organic movement
 
-      // Calculate sphere position and size using helper function
-      const sphereInfo: SphereInfo = calculateSpherePositionAndSize(
-        canvas,
-        time,
-        currentSection
-      );
+      // Calculate sphere position and size using appropriate helper function
+      const sphereInfo: SphereInfo = isMobile
+        ? calculateMobileSpherePositionAndSize(canvas, time, currentSection)
+        : calculateSpherePositionAndSize(canvas, time, currentSection);
       const { x: sphereX, y: sphereY, z: sphereZ, radius } = sphereInfo;
 
       // Update store for interactions
@@ -1108,8 +1138,12 @@ const BackgroundElements = () => {
       ctx.fillStyle = `rgba(160, 120, 180, ${kraslovskisAlpha * 0.25})`;
       ctx.fill();
 
-      // Render sphere glow using helper function
-      renderSphereGlow(ctx, sphereX, sphereY, radius);
+      // Render sphere glow using appropriate helper function
+      if (isMobile) {
+        renderMobileSphereGlow(ctx, sphereX, sphereY, radius);
+      } else {
+        renderSphereGlow(ctx, sphereX, sphereY, radius);
+      }
 
       animationFrame = requestAnimationFrame(animate);
     };
@@ -1122,7 +1156,7 @@ const BackgroundElements = () => {
       }
       window.removeEventListener('resize', resizeCanvas);
     };
-  }, [currentSection]);
+  }, [currentSection, device.isMobile, device.hardwareConcurrency]);
 
   return (
     <>

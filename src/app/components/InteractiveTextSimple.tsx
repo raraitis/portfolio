@@ -7,6 +7,7 @@ import {
   useAnimationState,
   useAnimationActions,
 } from '@/contexts/AnimationContext';
+import { useDevice } from '../hooks/useDevice';
 import { nameText, nameTextMobile } from '../../styles';
 
 interface WordProps {
@@ -26,7 +27,30 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
       index: number;
     }>
   >([]);
-  const [isMobile, setIsMobile] = useState(false);
+  const device = useDevice();
+
+  // Mobile-optimized spring configurations
+  const springConfig = {
+    // Scale animation config - more responsive on mobile
+    scale: device.isMobile
+      ? { tension: 300, friction: 25 } // Reduced tension for better mobile performance
+      : { tension: 400, friction: 20 },
+
+    // Drop animation config - less intensive on mobile
+    drop: device.isMobile
+      ? { tension: 50, friction: 15, mass: 1.5 } // Reduced complexity for mobile
+      : { tension: 60, friction: 12, mass: 2 },
+
+    // Return animation config - faster on mobile to reduce jank
+    return: device.isMobile
+      ? { tension: 100, friction: 30, mass: 0.8 } // Faster, less bouncy
+      : { tension: 120, friction: 25, mass: 1 },
+
+    // Reset scale config
+    resetScale: device.isMobile
+      ? { tension: 120, friction: 25 } // Simpler reset
+      : { tension: 150, friction: 20 },
+  };
 
   // Animation context hooks
   const animationState = useAnimationState();
@@ -37,19 +61,8 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
   const wordScale = useSpringValue(1); // Start at full size
   const [isDragging, setIsDragging] = useState(false);
 
-  // Check screen size for responsive styling
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768); // Tailwind's md breakpoint
-    };
-
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  // Choose appropriate text styles based on screen size
-  const currentTextStyles = isMobile ? nameTextMobile : nameText;
+  // Choose appropriate text styles based on device type
+  const currentTextStyles = device.isMobile ? nameTextMobile : nameText;
 
   // Gravitational influence effect disabled for better performance in fixed position
   // useEffect(() => {
@@ -64,7 +77,7 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
         // Dragging the word - use movement from initial position
         wordX.set(initialX + mx);
         wordY.set(initialY + my);
-        wordScale.start({ to: 1.1, config: { tension: 400, friction: 20 } }); // More responsive
+        wordScale.start({ to: 1.1, config: springConfig.scale }); // Use optimized config
         animationActions.updateBackgroundIntensity();
       } else {
         // Not actively dragging - apply gravity with visible drop
@@ -80,7 +93,7 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
         // Animate the drop with visible gravity
         wordY.start({
           to: floorY,
-          config: { tension: 60, friction: 12, mass: 2 }, // Visible drop with gravity feel
+          config: springConfig.drop, // Use optimized drop config
         });
 
         // Scatter when word has dropped about 60% of the way - so you see the drop AND the scatter
@@ -133,13 +146,13 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
       // Faster, more fluid magnet pull
       wordX.start({
         to: initialX,
-        config: { tension: 120, friction: 25, mass: 1 }, // Faster return
+        config: springConfig.return, // Use optimized return config
       });
       wordY.start({
         to: initialY,
-        config: { tension: 120, friction: 25, mass: 1 },
+        config: springConfig.return,
       });
-      wordScale.start({ to: 1, config: { tension: 150, friction: 20 } });
+      wordScale.start({ to: 1, config: springConfig.resetScale });
     }, 1500); // Shorter display time
   };
 

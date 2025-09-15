@@ -318,6 +318,60 @@ const BackgroundElements = () => {
 
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Add futuristic gradient background
+      const bgGradient = ctx.createRadialGradient(
+        canvas.width * 0.5,
+        canvas.height * 0.3,
+        0, // Start: upper center
+        canvas.width * 0.5,
+        canvas.height * 0.7,
+        canvas.width * 0.8 // End: slightly down, wide spread
+      );
+      bgGradient.addColorStop(0, 'rgba(245, 250, 255, 0.03)'); // Very subtle blue-white center
+      bgGradient.addColorStop(0.3, 'rgba(230, 240, 250, 0.02)'); // Light blue-grey
+      bgGradient.addColorStop(0.6, 'rgba(220, 225, 235, 0.015)'); // Subtle grey-blue
+      bgGradient.addColorStop(1, 'rgba(255, 255, 255, 0.005)'); // Almost transparent white edges
+
+      ctx.fillStyle = bgGradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Add subtle dot pattern overlay
+      const dotSpacing = 60; // Space between dots
+      const dotSize = 0.8; // Small dots
+      const rows = Math.ceil(canvas.height / dotSpacing);
+      const cols = Math.ceil(canvas.width / dotSpacing);
+
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          // Offset every other row for hexagonal-like pattern
+          const offsetX = (row % 2) * (dotSpacing * 0.5);
+          const x = col * dotSpacing + offsetX;
+          const y = row * dotSpacing;
+
+          // Skip if outside canvas
+          if (x > canvas.width || y > canvas.height) continue;
+
+          // Add subtle animation to dots
+          const dotPhase = time * 0.5 + row * 0.1 + col * 0.15;
+          const dotAlpha = 0.08 + Math.sin(dotPhase) * 0.03; // Gentle pulsing (0.05-0.11)
+
+          // Distance-based fading (dots fade toward edges)
+          const centerX = canvas.width * 0.5;
+          const centerY = canvas.height * 0.5;
+          const distanceFromCenter = Math.sqrt(
+            (x - centerX) ** 2 + (y - centerY) ** 2
+          );
+          const maxDistance = Math.sqrt(centerX ** 2 + centerY ** 2);
+          const fadeFactor = 1 - (distanceFromCenter / maxDistance) * 0.7; // Fade 70% toward edges
+
+          ctx.beginPath();
+          ctx.arc(x, y, dotSize, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(200, 210, 220, ${dotAlpha * fadeFactor})`; // Very subtle blue-grey dots
+          ctx.fill();
+        }
+      }
+
       time += 0.008; // Slow, organic movement
 
       // Sphere size - responsive and bigger
@@ -701,15 +755,19 @@ const BackgroundElements = () => {
             const redShade = 80 + (pIdx % 3) * 5; // Same variation as parent
             const greenShade = 70 + (pIdx % 3) * 3;
             const blueShade = 50 + (pIdx % 3) * 4;
-            // Make moon colors darker (reduce by ~30-40)
-            const moonRed = Math.max(20, redShade - 35);
-            const moonGreen = Math.max(15, greenShade - 30);
-            const moonBlue = Math.max(10, blueShade - 25);
-            
+            // Make moon colors darker but not too dark (reduce by ~20-25 instead of 30-40)
+            const moonRed = Math.max(45, redShade - 20);
+            const moonGreen = Math.max(40, greenShade - 18);
+            const moonBlue = Math.max(25, blueShade - 15);
+
             if (m === 0) {
-              ctx.fillStyle = `rgba(${moonRed + 10}, ${moonGreen + 5}, ${moonBlue}, ${alpha * 0.8})`; // Slightly different shade for first moon
+              ctx.fillStyle = `rgba(${moonRed + 10}, ${
+                moonGreen + 5
+              }, ${moonBlue}, ${alpha * 0.8})`; // Slightly different shade for first moon
             } else {
-              ctx.fillStyle = `rgba(${moonRed}, ${moonGreen + 8}, ${moonBlue + 5}, ${alpha * 0.8})`; // Slightly different shade for second moon
+              ctx.fillStyle = `rgba(${moonRed}, ${moonGreen + 8}, ${
+                moonBlue + 5
+              }, ${alpha * 0.8})`; // Slightly different shade for second moon
             }
             ctx.fill();
 
@@ -717,9 +775,13 @@ const BackgroundElements = () => {
             ctx.beginPath();
             ctx.arc(moonX, moonY, moonSize * 1.5, 0, Math.PI * 2);
             if (m === 0) {
-              ctx.fillStyle = `rgba(${moonRed + 10}, ${moonGreen + 5}, ${moonBlue}, ${alpha * 0.2})`; // Darker glow
+              ctx.fillStyle = `rgba(${moonRed + 10}, ${
+                moonGreen + 5
+              }, ${moonBlue}, ${alpha * 0.2})`; // Darker glow
             } else {
-              ctx.fillStyle = `rgba(${moonRed}, ${moonGreen + 8}, ${moonBlue + 5}, ${alpha * 0.2})`; // Darker glow
+              ctx.fillStyle = `rgba(${moonRed}, ${moonGreen + 8}, ${
+                moonBlue + 5
+              }, ${alpha * 0.2})`; // Darker glow
             }
             ctx.fill();
           }
@@ -907,21 +969,25 @@ const BackgroundElements = () => {
               const parentRed = 80 + (oDx % 4) * 4; // Same as parent
               const parentGreen = 70 + (oDx % 4) * 3;
               const parentBlue = 50 + (oDx % 4) * 3;
-              // Make darker (reduce by ~40)
-              const moonRed = Math.max(15, parentRed - 40);
-              const moonGreen = Math.max(10, parentGreen - 35);
-              const moonBlue = Math.max(5, parentBlue - 30);
-              ctx.fillStyle = `rgba(${moonRed}, ${moonGreen}, ${moonBlue}, ${0.9 * perspectiveAlpha})`;
+              // Make darker but not too dark (reduce by ~25 instead of 40)
+              const moonRed = Math.max(40, parentRed - 25);
+              const moonGreen = Math.max(35, parentGreen - 20);
+              const moonBlue = Math.max(20, parentBlue - 18);
+              ctx.fillStyle = `rgba(${moonRed}, ${moonGreen}, ${moonBlue}, ${
+                0.9 * perspectiveAlpha
+              })`;
             } else {
               // For normal orbital dots: darker version of parent color
               const parentRed = 80 + (oDx % 4) * 4;
               const parentGreen = 70 + (oDx % 4) * 3;
               const parentBlue = 50 + (oDx % 4) * 3;
-              // Make darker (reduce by ~35)
-              const moonRed = Math.max(20, parentRed - 35);
-              const moonGreen = Math.max(15, parentGreen - 30);
-              const moonBlue = Math.max(10, parentBlue - 25);
-              ctx.fillStyle = `rgba(${moonRed}, ${moonGreen}, ${moonBlue}, ${0.9 * perspectiveAlpha})`;
+              // Make darker but not too dark (reduce by ~20 instead of 35)
+              const moonRed = Math.max(45, parentRed - 20);
+              const moonGreen = Math.max(40, parentGreen - 18);
+              const moonBlue = Math.max(25, parentBlue - 15);
+              ctx.fillStyle = `rgba(${moonRed}, ${moonGreen}, ${moonBlue}, ${
+                0.9 * perspectiveAlpha
+              })`;
             }
             ctx.fill();
           }
@@ -933,6 +999,66 @@ const BackgroundElements = () => {
 
       // Remove visible border around sphere
       // (delete or comment out the border drawing code)
+
+      // Add 2 moons orbiting around each name separately - "RAITIS" and "KRASLOVSKIS"
+      
+      // RAITIS moon (first name) - positioned around first line
+      const raitisX = 80; // Approximate center of "RAITIS" text
+      const raitisY = 60; // Y position of first line
+      const raitisOrbitAngle = time * 0.8; // Faster orbit for RAITIS
+      
+      // More vertical orbit that goes front/back and moves along the name length
+      const raitisOrbitRadiusX = 25; // Horizontal orbit radius (smaller for more vertical feel)
+      const raitisOrbitRadiusY = 40; // Vertical orbit radius (larger for vertical movement)
+      const raitisNameMovement = Math.sin(time * 0.3) * 30; // Moves 30px along name length
+      
+      const raitisMoonX = raitisX + raitisNameMovement + Math.cos(raitisOrbitAngle) * raitisOrbitRadiusX;
+      const raitisMoonY = raitisY + Math.sin(raitisOrbitAngle) * raitisOrbitRadiusY;
+      
+      // Depth calculation for front/back effect
+      const raitisDepth = (Math.sin(raitisOrbitAngle) + 1) / 2; // 0 to 1
+      const raitisAlpha = 0.4 + raitisDepth * 0.6; // Brighter when in front
+      const raitisSize = 2.5 + raitisDepth * 1.5; // Bigger when in front (2.5-4px)
+      
+      ctx.beginPath();
+      ctx.arc(raitisMoonX, raitisMoonY, raitisSize, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(100, 150, 200, ${raitisAlpha})`; // Blue for RAITIS
+      ctx.fill();
+      
+      // Glow for RAITIS moon
+      ctx.beginPath();
+      ctx.arc(raitisMoonX, raitisMoonY, raitisSize * 2, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(100, 150, 200, ${raitisAlpha * 0.3})`;
+      ctx.fill();
+      
+      // KRASLOVSKIS moon (last name) - positioned around second line
+      const kraslovskisX = 120; // Approximate center of "KRASLOVSKIS" text (longer name)
+      const kraslovskisY = 110; // Y position of second line
+      const kraslovskisOrbitAngle = time * 0.5; // Slower orbit for KRASLOVSKIS
+      
+      // Different orbit characteristics for last name
+      const kraslovskisOrbitRadiusX = 35; // Larger horizontal radius for longer name
+      const kraslovskisOrbitRadiusY = 50; // Larger vertical radius
+      const kraslovskisNameMovement = Math.cos(time * 0.2) * 50; // Moves 50px along longer name
+      
+      const kraslovskisMoonX = kraslovskisX + kraslovskisNameMovement + Math.cos(kraslovskisOrbitAngle) * kraslovskisOrbitRadiusX;
+      const kraslovskisMoonY = kraslovskisY + Math.sin(kraslovskisOrbitAngle) * kraslovskisOrbitRadiusY;
+      
+      // Depth calculation for front/back effect
+      const kraslovskisDepth = (Math.sin(kraslovskisOrbitAngle) + 1) / 2; // 0 to 1
+      const kraslovskisAlpha = 0.3 + kraslovskisDepth * 0.7; // Different alpha range
+      const kraslovskisSize = 3 + kraslovskisDepth * 2; // Bigger moon (3-5px)
+      
+      ctx.beginPath();
+      ctx.arc(kraslovskisMoonX, kraslovskisMoonY, kraslovskisSize, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(160, 120, 180, ${kraslovskisAlpha})`; // Purple for KRASLOVSKIS
+      ctx.fill();
+      
+      // Glow for KRASLOVSKIS moon
+      ctx.beginPath();
+      ctx.arc(kraslovskisMoonX, kraslovskisMoonY, kraslovskisSize * 2.2, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(160, 120, 180, ${kraslovskisAlpha * 0.25})`;
+      ctx.fill();
 
       // Add outer atmospheric glow - increased visibility
       const glowGradient = ctx.createRadialGradient(

@@ -857,7 +857,7 @@ const BackgroundElements = () => {
               dot.y + Math.sin(moonAngle) * moonRadius + oscillation;
             ctx.beginPath();
             ctx.arc(moonX, moonY, dot.size * 0.45, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(120, 110, 80, 0.7)`;
+            ctx.fillStyle = `rgba(140, 130, 100, 0.8)`; // Brighter moon color (was 120, 110, 80, 0.7)
             ctx.fill();
           }
         }
@@ -1000,26 +1000,26 @@ const BackgroundElements = () => {
 
             // Make moon colors darker than their parent BLUE dots
             if (isBiggestBlueDot) {
-              // For biggest blue dot: use darker version of parent color
-              const parentRed = 80 + (oDx % 4) * 4; // Same as parent
-              const parentGreen = 70 + (oDx % 4) * 3;
-              const parentBlue = 50 + (oDx % 4) * 3;
-              // Make darker but not too dark (reduce by ~25 instead of 40)
-              const moonRed = Math.max(40, parentRed - 25);
-              const moonGreen = Math.max(35, parentGreen - 20);
-              const moonBlue = Math.max(20, parentBlue - 18);
+              // For biggest blue dot: use darker version of NEW BRIGHTER parent color
+              const parentRed = 110 + (oDx % 4) * 5; // New brighter parent values
+              const parentGreen = 100 + (oDx % 4) * 4;
+              const parentBlue = 75 + (oDx % 4) * 4;
+              // Make darker but not too dark (reduce by ~20)
+              const moonRed = Math.max(70, parentRed - 20);
+              const moonGreen = Math.max(65, parentGreen - 18);
+              const moonBlue = Math.max(45, parentBlue - 15);
               ctx.fillStyle = `rgba(${moonRed}, ${moonGreen}, ${moonBlue}, ${
                 0.9 * perspectiveAlpha
               })`;
             } else {
-              // For normal orbital dots: darker version of parent color
-              const parentRed = 80 + (oDx % 4) * 4;
-              const parentGreen = 70 + (oDx % 4) * 3;
-              const parentBlue = 50 + (oDx % 4) * 3;
-              // Make darker but not too dark (reduce by ~20 instead of 35)
-              const moonRed = Math.max(45, parentRed - 20);
-              const moonGreen = Math.max(40, parentGreen - 18);
-              const moonBlue = Math.max(25, parentBlue - 15);
+              // For normal orbital dots: darker version of NEW BRIGHTER parent color
+              const parentRed = 110 + (oDx % 4) * 5; // New brighter parent values
+              const parentGreen = 100 + (oDx % 4) * 4;
+              const parentBlue = 75 + (oDx % 4) * 4;
+              // Make darker but not too dark (reduce by ~15)
+              const moonRed = Math.max(75, parentRed - 15);
+              const moonGreen = Math.max(70, parentGreen - 15);
+              const moonBlue = Math.max(50, parentBlue - 12);
               ctx.fillStyle = `rgba(${moonRed}, ${moonGreen}, ${moonBlue}, ${
                 0.9 * perspectiveAlpha
               })`;

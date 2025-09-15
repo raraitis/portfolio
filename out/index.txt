@@ -1,0 +1,24 @@
+1:"$Sreact.fragment"
+2:I[5046,["437","static/chunks/437-074a06b4d541de7c.js","177","static/chunks/app/layout-a3a04fe553619d06.js"],"AnimationProvider"]
+3:I[326,["437","static/chunks/437-074a06b4d541de7c.js","177","static/chunks/app/layout-a3a04fe553619d06.js"],"default"]
+4:I[6201,["437","static/chunks/437-074a06b4d541de7c.js","177","static/chunks/app/layout-a3a04fe553619d06.js"],"default"]
+5:I[9766,[],""]
+6:I[8924,[],""]
+7:I[2619,["345","static/chunks/app/not-found-43448ac1b3f8f7b1.js"],""]
+8:I[1959,[],"ClientPageRoot"]
+9:I[5078,["83","static/chunks/83-424b55d929219cb8.js","437","static/chunks/437-074a06b4d541de7c.js","974","static/chunks/app/page-e3712af5082d80f8.js"],"default"]
+c:I[4431,[],"OutletBoundary"]
+e:I[5278,[],"AsyncMetadataOutlet"]
+10:I[4431,[],"ViewportBoundary"]
+12:I[4431,[],"MetadataBoundary"]
+13:"$Sreact.suspense"
+15:I[7150,[],""]
+:HL["/_next/static/media/e4af272ccee01ff0-s.p.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
+:HL["/_next/static/css/a9f9ff7a217f6325.css","style"]
+0:{"P":null,"b":"IJcOOTRKo1CzXmF0BjpX0","p":"","c":["",""],"i":false,"f":[[["",{"children":["__PAGE__",{}]},"$undefined","$undefined",true],["",["$","$1","c",{"children":[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/css/a9f9ff7a217f6325.css","precedence":"next","crossOrigin":"$undefined","nonce":"$undefined"}]],["$","html",null,{"lang":"en","className":"__variable_f367f3","children":["$","body",null,{"className":"min-h-screen text-gray-900 font-sans antialiased","style":{"background":"linear-gradient(135deg, \n        #f5f1e8 0%, \n        #ede4d3 25%, \n        #e8dcc6 50%, \n        #ddd0bb 75%, \n        #d4c4a8 100%\n      )"},"children":[["$","div",null,{"style":{"position":"fixed","inset":0,"margin":"20px","border":"1px solid #d4c4a8","borderImage":"linear-gradient(45deg, \n        #d4c4a8 0%, \n        #c9b896 25%, \n        #d4c4a8 50%, \n        #beac84 75%, \n        #d4c4a8 100%\n      ) 1","borderRadius":"8px","pointerEvents":"none","zIndex":1400}}],["$","$L2",null,{"children":[["$","$L3",null,{}],["$","$L4",null,{}],["$","main",null,{"children":["$","$L5",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L6",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":[["$","div",null,{"className":"min-h-screen flex items-center justify-center px-6","children":["$","div",null,{"className":"text-center","children":[["$","h1",null,{"className":"text-6xl font-light text-gray-900 mb-4 font-alien","children":"404"}],["$","h2",null,{"className":"text-2xl font-medium text-gray-600 mb-8 font-alien","children":"Page Not Found"}],["$","p",null,{"className":"text-gray-500 mb-8 max-w-md font-alien","children":"The page you're looking for doesn't exist or has been moved."}],["$","$L7",null,{"href":"/","className":"inline-flex items-center px-6 py-3 bg-gray-900 text-white text-sm font-medium rounded-full hover:bg-gray-700 transition-colors font-alien tracking-wide","children":"← BACK TO THE FUTURE"}]]}]}],[]],"forbidden":"$undefined","unauthorized":"$undefined"}]}]]}]]}]}]]}],{"children":["__PAGE__",["$","$1","c",{"children":[["$","$L8",null,{"Component":"$9","searchParams":{},"params":{},"promises":["$@a","$@b"]}],null,["$","$Lc",null,{"children":["$Ld",["$","$Le",null,{"promise":"$@f"}]]}]]}],{},null,false]},null,false],["$","$1","h",{"children":[null,[["$","$L10",null,{"children":"$L11"}],["$","meta",null,{"name":"next-size-adjust","content":""}]],["$","$L12",null,{"children":["$","div",null,{"hidden":true,"children":["$","$13",null,{"fallback":null,"children":"$L14"}]}]}]]}],false]],"m":"$undefined","G":["$15",[]],"s":false,"S":true}
+a:{}
+b:"$0:f:0:1:2:children:1:props:children:0:props:params"
+11:[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1, maximum-scale=1"}]]
+d:null
+f:{"metadata":[["$","title","0",{"children":"Raitis Kraslovskis - Portfolio"}],["$","meta","1",{"name":"description","content":"you think it. i make it. you break it. i solve it. universe approves. we happy. thats a deal."}]],"error":null,"digest":"$undefined"}
+14:"$f:metadata"

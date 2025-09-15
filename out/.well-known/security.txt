@@ -1,0 +1,11 @@
+Contact: mailto:security@raitiskraslovskis.com
+Expires: 2026-12-31T23:59:59.000Z
+Encryption: https://raitiskraslovskis.com/pgp-key.txt
+Preferred-Languages: en, lv
+Canonical: https://raitiskraslovskis.com/.well-known/security.txt
+Policy: https://raitiskraslovskis.com/security-policy
+Acknowledgments: https://raitiskraslovskis.com/security-acknowledgments
+
+# Security Policy
+# If you discover a security vulnerability, please report it responsibly.
+# We appreciate your efforts to improve our security.

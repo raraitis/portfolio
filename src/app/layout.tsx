@@ -1,5 +1,5 @@
 import { Inter } from 'next/font/google';
-import './globals.css';
+import '../styles/globals.css';
 import '../styles/fonts.css';
 import { AnimationProvider } from '@/contexts/AnimationContext';
 import SimpleNavigation from './components/SimpleNavigation';

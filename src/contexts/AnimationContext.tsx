@@ -46,7 +46,7 @@ const initialState: AnimationState = {
   navigation: {
     items: [
       {
-        word: 'HOME',
+        word: 'HOME PLANET',
         position: { x: 0, y: 0 },
         originalPosition: { x: 0, y: 0 },
         href: '/',

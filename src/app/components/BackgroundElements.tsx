@@ -545,17 +545,52 @@ const BackgroundElements = () => {
 
       // Draw dots
       dots.forEach((dot) => {
-        // Fluid pulse if firing
+        // Enhanced firing effects: size pop and shine
         let pulse = 0;
+        let sizePop = 0;
+        let shine = 0;
+
         if (dot._staticDot && dot._staticDot._firing) {
+          // Fast pulse for smooth firing effect
           pulse = Math.sin(time * 12) * 2;
+
+          // Very small size pop - quick up and down
+          const popSpeed = time * 15; // Fast animation
+          sizePop = Math.sin(popSpeed) * 1.2; // VERY small size increase (max 1.2px)
+
+          // Brief shine effect - quick bright flash
+          const shineSpeed = time * 18; // Even faster for brief shine
+          shine = Math.max(0, Math.sin(shineSpeed)) * 0.4; // Positive values only, max 0.4 alpha boost
         }
+
         const intensity = 0.5 * dot.depth + 0.3;
-        // All dots use the same color
-        ctx.fillStyle = `rgba(120, 110, 80, ${intensity})`;
+
+        // Apply shine effect to color
+        const baseAlpha = intensity + shine;
+        const shineGlow =
+          shine > 0
+            ? `, 0 0 ${4 + shine * 6}px rgba(200, 180, 120, ${shine * 0.8})`
+            : '';
+
+        // All dots use the same color with optional shine
+        ctx.fillStyle = `rgba(120, 110, 80, ${baseAlpha})`;
+
+        // Add subtle glow when firing
+        if (shine > 0) {
+          ctx.shadowColor = `rgba(200, 180, 120, ${shine * 0.6})`;
+          ctx.shadowBlur = 3 + shine * 4;
+        } else {
+          ctx.shadowColor = 'transparent';
+          ctx.shadowBlur = 0;
+        }
+
         ctx.beginPath();
-        ctx.arc(dot.x, dot.y, dot.size + pulse, 0, Math.PI * 2);
+        ctx.arc(dot.x, dot.y, dot.size + pulse + sizePop, 0, Math.PI * 2);
         ctx.fill();
+
+        // Reset shadow for next dot
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
       });
 
       // Neurolink-style shooting lines between dots
@@ -925,15 +960,15 @@ const BackgroundElements = () => {
           const randSize = bigDotStaticSizes[staticIndex][i];
 
           const depth = (rotatedZ + 1) / 2;
-          const alpha = (0.3 + depth * 0.7) * perspectiveAlpha; // Apply 3D perspective alpha
+          const alpha = (0.5 + depth * 0.5) * perspectiveAlpha; // Brighter base alpha (was 0.3 + 0.7)
 
           ctx.beginPath();
           ctx.arc(dotX, dotY, randSize * perspectiveScale, 0, Math.PI * 2); // Apply perspective scaling
           // ctx.fillStyle = `rgba(80, 70, 50, ${alpha})`; // Original: Darker version of main sphere color
-          // Add subtle shade variation for BLUE dots (back to brownish but slightly varied)
-          const redShade = 80 + (oDx % 4) * 4; // Subtle variation: 80, 84, 88, 92
-          const greenShade = 70 + (oDx % 4) * 3; // Subtle variation: 70, 73, 76, 79
-          const blueShade = 50 + (oDx % 4) * 3; // Subtle variation: 50, 53, 56, 59
+          // Brighter shade variation for orbital dots - reduced darkness
+          const redShade = 110 + (oDx % 4) * 5; // Brighter variation: 110, 115, 120, 125 (was 80-92)
+          const greenShade = 100 + (oDx % 4) * 4; // Brighter variation: 100, 104, 108, 112 (was 70-79)
+          const blueShade = 75 + (oDx % 4) * 4; // Brighter variation: 75, 79, 83, 87 (was 50-59)
           ctx.fillStyle = `rgba(${redShade}, ${greenShade}, ${blueShade}, ${alpha})`;
           ctx.fill();
         }

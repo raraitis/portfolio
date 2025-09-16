@@ -5,6 +5,7 @@ import { useAnimationActions } from '@/contexts/AnimationContext';
 import { useDevice } from '../hooks/useDevice';
 import { styles } from '../../styles';
 import { ORBITAL_BIG_DOTS_CONFIG } from '../config/backgroundConfig';
+import { ORBITAL_BIG_DOTS_CONFIG as ORBITAL_PARAMS_CONFIG } from '../config/orbitalBigDotsConfig';
 import { PLANET_DOTS_CONFIG } from '../config/planetDotsConfig';
 import {
   STATIC_DOTS_GRID_CONFIG,
@@ -205,7 +206,7 @@ const BackgroundElements = () => {
         tilts: number[];
       };
     }[] = [];
-    const orbitalBigDotCount = ORBITAL_BIG_DOTS_CONFIG.count; // Use hardcoded value for consistency
+    const orbitalBigDotCount = ORBITAL_PARAMS_CONFIG.count; // Use hardcoded value for consistency
     for (let o = 0; o < orbitalBigDotCount; o++) {
       // Add moons to ALL orbital BIG dots (100% chance)
       const hasMoons = true; // All orbital BIG dots will have moons
@@ -225,24 +226,23 @@ const BackgroundElements = () => {
 
       // No more moon overrides needed - values are already set correctly in config!
 
+      // Get hardcoded orbital parameters for this dot
+      const orbitalParams = ORBITAL_PARAMS_CONFIG.orbitalParams[o];
+
       orbitalBigDots.push({
         x: 0,
         y: 0,
         z: 0, // Initialize Z coordinate
-        size: isExtraBigDot ? 8 + Math.random() * 4 : 3 + Math.random() * 3, // Extra big dot: 8-12, normal: 3-6
-        orbitRadius: isExtraBigDot
-          ? 2.2 + Math.random() * 0.8
-          : 1.4 + Math.random() * 0.6, // Extra big dot farther out: 2.2-3.0, normal: 1.4-2.0
-        orbitSpeed: isExtraBigDot
-          ? 0.1 + Math.random() * 0.16
-          : 0.16 + Math.random() * 0.24, // 2x faster: Extra big dot: 0.10-0.26, normal: 0.16-0.4
-        orbitAngle: Math.random() * Math.PI * 2, // Random starting angle
-        orbitTilt: isExtraBigDot ? 1.57 : 0.05 + Math.random() * 0.15, // Extra big dot: vertical (π/2), others: mostly horizontal
-        orbitRotation: Math.random() * Math.PI * 2, // Rotation of orbital plane around Y-axis
-        orbitInclination: isExtraBigDot ? 1.57 : Math.random() * 0.3, // Extra big dot: vertical (π/2), others: mostly horizontal
-        orbitDirection: Math.random() < 0.5 ? 1 : -1, // Random direction
-        spinSpeed: 0.15 + Math.random() * 0.5, // Varied spin speeds (0.15 - 0.65)
-        spinDirection: Math.random() < 0.5 ? 1 : -1, // Random spin direction
+        size: orbitalParams.size, // Hardcoded size
+        orbitRadius: orbitalParams.orbitRadius, // Hardcoded orbit radius
+        orbitSpeed: orbitalParams.orbitSpeed, // Hardcoded orbit speed
+        orbitAngle: orbitalParams.orbitAngle, // Hardcoded starting angle
+        orbitTilt: orbitalParams.orbitTilt, // Hardcoded tilt
+        orbitRotation: orbitalParams.orbitRotation, // Hardcoded rotation
+        orbitInclination: orbitalParams.orbitInclination, // Hardcoded inclination
+        orbitDirection: orbitalParams.orbitDirection, // Hardcoded direction
+        spinSpeed: orbitalParams.spinSpeed, // Hardcoded spin speed
+        spinDirection: orbitalParams.spinDirection, // Hardcoded spin direction
         moons,
       });
     }
@@ -652,18 +652,22 @@ const BackgroundElements = () => {
           ctx.arc(dotX, dotY, randSize, 0, Math.PI * 2);
           // Get planet configuration for color and special properties
           const planetConfig = PLANET_DOTS_CONFIG.planets[pIdx];
-          
+
           if (planetConfig && planetConfig.isFat && planetConfig.color) {
             // � BEIGE - Fat planet dots (beige color closer to brown sphere)
             const beigeColor = planetConfig.color;
-            ctx.fillStyle = `rgba(${beigeColor.r}, ${beigeColor.g}, ${beigeColor.b}, ${localAlpha * beigeColor.alpha})`;
+            ctx.fillStyle = `rgba(${beigeColor.r}, ${beigeColor.g}, ${
+              beigeColor.b
+            }, ${localAlpha * beigeColor.alpha})`;
             ctx.fill();
-            
+
             // Add halo effect for fat planets
             if (planetConfig.hasHalo) {
               ctx.beginPath();
               ctx.arc(dotX, dotY, randSize * 1.8, 0, Math.PI * 2);
-              ctx.fillStyle = `rgba(${beigeColor.r}, ${beigeColor.g}, ${beigeColor.b}, ${localAlpha * beigeColor.alpha * 0.3})`;
+              ctx.fillStyle = `rgba(${beigeColor.r}, ${beigeColor.g}, ${
+                beigeColor.b
+              }, ${localAlpha * beigeColor.alpha * 0.3})`;
               ctx.fill();
             }
           } else {

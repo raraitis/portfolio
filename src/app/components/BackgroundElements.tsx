@@ -4,6 +4,12 @@ import { useEffect, useRef, useState } from 'react';
 import { useAnimationActions } from '@/contexts/AnimationContext';
 import { useDevice } from '../hooks/useDevice';
 import { styles } from '../../styles';
+import { ORBITAL_BIG_DOTS_CONFIG } from '../config/backgroundConfig';
+import { PLANET_DOTS_CONFIG } from '../config/planetDotsConfig';
+import {
+  STATIC_DOTS_GRID_CONFIG,
+  getStaticDotConfig,
+} from '../config/staticDotsConfig';
 import {
   renderBackgroundPattern,
   calculateSpherePositionAndSize,
@@ -73,7 +79,17 @@ const BackgroundElements = () => {
       baseOffsetY: number;
       _firing?: boolean;
       _seed?: number;
-      moons?: { count: number; offsets: number[] };
+      moons?: {
+        count: number;
+        offsets?: number[];
+        configs?: {
+          orbitRadius: number;
+          orbitSpeed: number;
+          orbitAngle: number;
+          orbitTilt: number;
+          moonSize: number;
+        }[];
+      };
       orbitsPlanet?: {
         planetIndex: number;
         orbitRadius: number;
@@ -87,9 +103,9 @@ const BackgroundElements = () => {
       };
     }[] = [];
 
-    // Generate grid pattern that covers sphere better
-    const gridResolution = 28;
-    const step = 2 / (gridResolution - 1);
+    // Generate grid pattern that covers sphere better - using hardcoded config
+    const gridResolution = STATIC_DOTS_GRID_CONFIG.resolution;
+    const step = STATIC_DOTS_GRID_CONFIG.step;
 
     // Select 3/5 of dots for moons
     let moonDotIndices: number[] = [];
@@ -114,8 +130,8 @@ const BackgroundElements = () => {
           planetDotIndices.push(moonDotIndices[i]);
       }
     }
-    // Create a few big planet dots with random displacement and orbital parameters
-    const planetCount = Math.max(2, Math.floor(totalDots / 40));
+    // Create a few big planet dots with predefined configurations
+    const planetCount = PLANET_DOTS_CONFIG.count; // Use hardcoded count for consistency
     const planetDots: {
       x: number;
       y: number;
@@ -138,45 +154,30 @@ const BackgroundElements = () => {
       };
     }[] = [];
     for (let p = 0; p < planetCount; p++) {
-      const angle = Math.random() * Math.PI * 2;
-      const baseRadius = 0.6 + Math.random() * 1.0; // Increased orbit radius for more visible movement (0.6 - 1.6)
+      // Use predefined planet configuration instead of random generation
+      const planetConfig = PLANET_DOTS_CONFIG.planets[p];
+      const angle = planetConfig.angle;
+      const baseRadius = planetConfig.baseRadius;
+
       planetDots.push({
         x: Math.cos(angle) * baseRadius,
         y: Math.sin(angle) * baseRadius,
-        size: 2.5 + Math.random() * 2.5,
+        size: planetConfig.size,
         angle,
         baseRadius,
-        orbitSpeed: 0.15 + Math.random() * 0.25, // Much faster orbital speeds for visible movement (0.15 - 0.4)
-        orbitTilt: Math.random() * Math.PI * 1.2, // More dramatic tilt variation
-        orbitEccentricity: 0.5 + Math.random() * 0.5, // More dramatic elliptical orbits (0.5 - 1.0)
-        spinSpeed: 0.1 + Math.random() * 0.4, // Varied spin speeds (0.1 - 0.5)
-        spinDirection: Math.random() < 0.5 ? 1 : -1, // Random spin direction
+        orbitSpeed: planetConfig.orbitSpeed,
+        orbitTilt: planetConfig.orbitTilt,
+        orbitEccentricity: planetConfig.orbitEccentricity,
+        spinSpeed: planetConfig.spinSpeed,
+        spinDirection: planetConfig.spinDirection,
         moons: {
-          count: 2, // Always 2 moons for each RED dot
-          distances: [
-            3.0 + Math.random() * 2.0, // First moon distance (3.0-5.0)
-            5.5 + Math.random() * 2.5, // Second moon distance (5.5-8.0)
-          ],
-          speeds: [
-            0.3 + Math.random() * 0.4, // First moon speed (0.3-0.7)
-            0.2 + Math.random() * 0.3, // Second moon speed (0.2-0.5, slower)
-          ],
-          angles: [
-            Math.random() * Math.PI * 2, // Random starting angle for first moon
-            Math.random() * Math.PI * 2, // Random starting angle for second moon
-          ],
-          sizes: [
-            0.3 + Math.random() * 0.4, // First moon size (0.3-0.7)
-            0.4 + Math.random() * 0.5, // Second moon size (0.4-0.9)
-          ],
-          tilts: [
-            Math.random() * Math.PI, // First moon orbital tilt (0 = horizontal, π/2 = vertical)
-            Math.random() * Math.PI, // Second moon orbital tilt (independent)
-          ],
-          inclinations: [
-            Math.random() * Math.PI * 2, // First moon orbital inclination (rotation around Y)
-            Math.random() * Math.PI * 2, // Second moon orbital inclination
-          ],
+          count: planetConfig.moons.count,
+          distances: [...planetConfig.moons.distances], // Copy arrays to avoid reference issues
+          speeds: [...planetConfig.moons.speeds],
+          angles: [...planetConfig.moons.angles],
+          sizes: [...planetConfig.moons.sizes],
+          tilts: [...planetConfig.moons.tilts],
+          inclinations: [...planetConfig.moons.inclinations],
         },
       });
     }
@@ -204,41 +205,25 @@ const BackgroundElements = () => {
         tilts: number[];
       };
     }[] = [];
-    const orbitalBigDotCount = 5 + Math.floor(Math.random() * 3); // 5-7 orbital BIG dots (increased by 1)
+    const orbitalBigDotCount = ORBITAL_BIG_DOTS_CONFIG.count; // Use hardcoded value for consistency
     for (let o = 0; o < orbitalBigDotCount; o++) {
       // Add moons to ALL orbital BIG dots (100% chance)
       const hasMoons = true; // All orbital BIG dots will have moons
+      const moonConfig = ORBITAL_BIG_DOTS_CONFIG.moons[o]; // Get predefined config for this dot
       const moons = hasMoons
         ? {
-            count: 2 + Math.floor(Math.random() * 3), // 2-4 moons per BIG dot (reverted)
-            angles: [] as number[],
-            distances: [] as number[],
-            speeds: [] as number[],
-            tilts: [] as number[],
+            count: moonConfig.count, // Use hardcoded count
+            angles: [...moonConfig.angles], // Use hardcoded angles
+            distances: [...moonConfig.distances], // Use hardcoded distances
+            speeds: [...moonConfig.speeds], // Use hardcoded speeds
+            tilts: [...moonConfig.tilts], // Use hardcoded tilts
           }
         : undefined;
-
-      if (moons) {
-        for (let m = 0; m < moons.count; m++) {
-          moons.angles.push(Math.random() * Math.PI * 2);
-          moons.distances.push(1.2 + Math.random() * 0.8); // Increased moon distance from BIG dot (1.2-2.0)
-          moons.speeds.push(0.6 + Math.random() * 1.0); // Reverted moon orbital speed (0.6-1.6)
-          moons.tilts.push(Math.random() * Math.PI); // Different orbital planes for moons
-        }
-      }
 
       // Check if this is the last (extra) orbital dot to make it bigger
       const isExtraBigDot = o === orbitalBigDotCount - 1;
 
-      // Special moon configuration for the biggest BLUE dot
-      if (isExtraBigDot && moons) {
-        // Override moons for biggest blue dot - give it exactly 2 moons with different orbital planes
-        moons.count = 2;
-        moons.angles = [0, Math.PI]; // Start opposite each other
-        moons.distances = [1.5, 2.2]; // Different distances
-        moons.speeds = [0.4, 0.25]; // Different speeds
-        moons.tilts = [Math.PI / 2, 0]; // First moon vertical (π/2), second moon horizontal (0)
-      }
+      // No more moon overrides needed - values are already set correctly in config!
 
       orbitalBigDots.push({
         x: 0,
@@ -249,14 +234,12 @@ const BackgroundElements = () => {
           ? 2.2 + Math.random() * 0.8
           : 1.4 + Math.random() * 0.6, // Extra big dot farther out: 2.2-3.0, normal: 1.4-2.0
         orbitSpeed: isExtraBigDot
-          ? 0.05 + Math.random() * 0.08
-          : 0.08 + Math.random() * 0.12, // Extra big dot slower: 0.05-0.13, normal: 0.08-0.2
+          ? 0.1 + Math.random() * 0.16
+          : 0.16 + Math.random() * 0.24, // 2x faster: Extra big dot: 0.10-0.26, normal: 0.16-0.4
         orbitAngle: Math.random() * Math.PI * 2, // Random starting angle
-        orbitTilt: isExtraBigDot
-          ? 0.1 + Math.random() * 0.1
-          : Math.random() * Math.PI, // Extra big dot: small horizontal angle (0.1-0.2), normal: random
+        orbitTilt: isExtraBigDot ? 1.57 : 0.05 + Math.random() * 0.15, // Extra big dot: vertical (π/2), others: mostly horizontal
         orbitRotation: Math.random() * Math.PI * 2, // Rotation of orbital plane around Y-axis
-        orbitInclination: isExtraBigDot ? 0 : Math.random() * Math.PI, // Extra big dot: horizontal (0), normal: random 3D
+        orbitInclination: isExtraBigDot ? 1.57 : Math.random() * 0.3, // Extra big dot: vertical (π/2), others: mostly horizontal
         orbitDirection: Math.random() < 0.5 ? 1 : -1, // Random direction
         spinSpeed: 0.15 + Math.random() * 0.5, // Varied spin speeds (0.15 - 0.65)
         spinDirection: Math.random() < 0.5 ? 1 : -1, // Random spin direction
@@ -286,38 +269,54 @@ const BackgroundElements = () => {
         const distance = Math.sqrt(
           relativeX * relativeX + relativeY * relativeY
         );
-        if (distance <= 0.9) {
+        if (distance <= STATIC_DOTS_GRID_CONFIG.sphereRadius) {
           // Keep dots slightly inside sphere
-          const size = 1.5 + Math.random() * 3; // Size between 1.5-4.5
 
-          // Add small random offset for organic feel
-          const baseOffsetX = (Math.random() - 0.5) * 0.1; // Small random offset
-          const baseOffsetY = (Math.random() - 0.5) * 0.1;
+          // Get hardcoded dot configuration instead of random generation
+          const dotConfig = getStaticDotConfig(dotIndex);
+          const size = dotConfig.size;
 
-          const moons = moonDotIndices.includes(dotIndex)
-            ? {
-                count: Math.random() < 0.5 ? 1 : 2,
-                offsets: [
-                  Math.random() * Math.PI * 2,
-                  Math.random() * Math.PI * 2,
-                ],
-              }
-            : undefined;
-          const orbitsPlanet = planetDotIndices.includes(dotIndex)
-            ? {
-                planetIndex: dotIndex % planetCount,
-                orbitRadius: 0.18 + Math.random() * 0.12,
-                orbitOffset: Math.random() * Math.PI * 2,
-              }
-            : undefined;
-          const orbitsMain = orbitingMoonDotIndices.includes(dotIndex)
-            ? {
-                orbitRadius: 0.3 + Math.random() * 0.4, // Orbit radius around main sphere center
-                orbitSpeed: 0.05 + Math.random() * 0.1, // Slow orbital speed
-                orbitOffset: Math.random() * Math.PI * 2, // Random starting position
-                orbitTilt: Math.random() * Math.PI * 0.6, // Random orbital tilt
-              }
-            : undefined;
+          // Use hardcoded offsets instead of random generation
+          const baseOffsetX = dotConfig.baseOffsetX;
+          const baseOffsetY = dotConfig.baseOffsetY;
+
+          const moons =
+            dotConfig.moonConfigs &&
+            !dotConfig.orbitsPlanet && // Don't give moons to dots that orbit planets
+            !planetDotIndices.includes(dotIndex) // Don't give moons to dots that orbit planets via old system
+              ? {
+                  count: dotConfig.moonCount || 0,
+                  configs: dotConfig.moonConfigs,
+                }
+              : moonDotIndices.includes(dotIndex) &&
+                !planetDotIndices.includes(dotIndex) // Don't give moons to planet-orbiting dots
+              ? {
+                  count: Math.random() < 0.5 ? 1 : 2,
+                  offsets: [
+                    Math.random() * Math.PI * 2,
+                    Math.random() * Math.PI * 2,
+                  ],
+                }
+              : undefined;
+          const orbitsPlanet =
+            dotConfig.orbitsPlanet ||
+            (planetDotIndices.includes(dotIndex)
+              ? {
+                  planetIndex: dotIndex % planetCount,
+                  orbitRadius: 0.18 + Math.random() * 0.12,
+                  orbitOffset: Math.random() * Math.PI * 2,
+                }
+              : undefined);
+          const orbitsMain =
+            dotConfig.orbitsMain ||
+            (orbitingMoonDotIndices.includes(dotIndex)
+              ? {
+                  orbitRadius: 0.3 + Math.random() * 0.4, // Orbit radius around main sphere center
+                  orbitSpeed: 0.05 + Math.random() * 0.1, // Slow orbital speed
+                  orbitOffset: Math.random() * Math.PI * 2, // Random starting position
+                  orbitTilt: Math.random() * Math.PI * 0.6, // Random orbital tilt
+                }
+              : undefined);
           staticDots.push({
             x: 0, // Will be calculated in animation
             y: 0, // Will be calculated in animation
@@ -530,125 +529,40 @@ const BackgroundElements = () => {
         // Apply shine effect to color with edge fade
         const baseAlpha = (intensity + shine) * edgeFade;
 
-        // All dots use the same color with optional shine and edge fade
-        ctx.fillStyle = `rgba(120, 110, 80, ${baseAlpha})`;
+        // 🟤 BROWN - Main sphere static dots (small dots on central sphere surface)
+        // TESTING: Main sphere static dots = BROWN
+        const brownColor = `rgba(139, 69, 19, ${baseAlpha})`; // Saddle brown
 
-        // Add subtle glow when firing
+        // Create perfectly round dots with subtle halo
+        const baseSize = dot.size + pulse + sizePop;
+
+        // Draw subtle halo first (larger, very light version of same color)
+        const haloSize = baseSize * 1.6; // 60% larger than main dot
+        const haloAlpha = baseAlpha * 0.15; // Very light - 15% of main dot opacity
+        ctx.fillStyle = `rgba(139, 69, 19, ${haloAlpha})`; // Same brown but very light
+        ctx.beginPath();
+        ctx.arc(dot.x, dot.y, haloSize, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Draw main perfectly round dot
+        ctx.fillStyle = brownColor;
+        ctx.beginPath();
+        ctx.arc(dot.x, dot.y, baseSize, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Add subtle glow when firing (only to main dot, not halo)
         if (shine > 0) {
           ctx.shadowColor = `rgba(200, 180, 120, ${shine * 0.6 * edgeFade})`;
           ctx.shadowBlur = 3 + shine * 4;
-        } else {
-          ctx.shadowColor = 'transparent';
-          ctx.shadowBlur = 0;
+          ctx.beginPath();
+          ctx.arc(dot.x, dot.y, baseSize, 0, Math.PI * 2);
+          ctx.fill();
         }
-
-        // Create organic, less perfect circle shape
-        const baseSize = dot.size + pulse + sizePop;
-        const organicVariation =
-          dot._staticDot._seed || (dot._staticDot._seed = Math.random() * 1000);
-
-        // Create irregular circle using multiple small arcs for organic feel
-        ctx.beginPath();
-
-        const segments = 8; // Number of curve segments for organic shape
-        const angleStep = (Math.PI * 2) / segments;
-
-        for (let i = 0; i <= segments; i++) {
-          const angle = i * angleStep;
-
-          // Add subtle variations to radius for organic feel
-          const variation1 = Math.sin(angle * 3 + organicVariation) * 0.15; // Small bumps
-          const variation2 =
-            Math.sin(angle * 7 + organicVariation * 1.3) * 0.08; // Fine details
-          const timeVariation =
-            Math.sin(time * 1.5 + angle * 2 + organicVariation) * 0.1; // Gentle breathing
-
-          const organicRadius =
-            baseSize * (1 + variation1 + variation2 + timeVariation);
-
-          const x = dot.x + Math.cos(angle) * organicRadius;
-          const y = dot.y + Math.sin(angle) * organicRadius;
-
-          if (i === 0) {
-            ctx.moveTo(x, y);
-          } else {
-            // Use quadratic curves for smoother organic shapes
-            const prevAngle = (i - 1) * angleStep;
-            const controlAngle = prevAngle + angleStep * 0.5;
-            const controlRadius =
-              baseSize *
-              (1 + Math.sin(controlAngle * 5 + organicVariation) * 0.12);
-            const controlX = dot.x + Math.cos(controlAngle) * controlRadius;
-            const controlY = dot.y + Math.sin(controlAngle) * controlRadius;
-
-            ctx.quadraticCurveTo(controlX, controlY, x, y);
-          }
-        }
-
-        ctx.closePath();
-        ctx.fill();
 
         // Reset shadow for next dot
         ctx.shadowColor = 'transparent';
         ctx.shadowBlur = 0;
       });
-
-      // Neurolink-style shooting lines between dots
-      const firingChance = 0.03; // 3% chance per frame for each connection
-      const maxConnections = 3; // Fewer connections per frame for minimal effect
-      let connectionCount = 0;
-      for (
-        let i = 0;
-        i < dots.length && connectionCount < maxConnections;
-        i++
-      ) {
-        const dot1 = dots[i];
-        // Find the two closest neighbors
-        let closest = [],
-          minDist = [],
-          idx = [];
-        for (let j = 0; j < dots.length; j++) {
-          if (i === j) continue;
-          const dot2 = dots[j];
-          const dx = dot2.x - dot1.x;
-          const dy = dot2.y - dot1.y;
-          const dist = dx * dx + dy * dy;
-          if (closest.length < 2) {
-            closest.push(dot2);
-            minDist.push(dist);
-            idx.push(j);
-          } else {
-            const maxIdx: number = minDist[0] > minDist[1] ? 0 : 1;
-            if (dist < minDist[maxIdx]) {
-              closest[maxIdx] = dot2;
-              minDist[maxIdx] = dist;
-              idx[maxIdx] = j;
-            }
-          }
-        }
-        for (
-          let k = 0;
-          k < closest.length && connectionCount < maxConnections;
-          k++
-        ) {
-          if (Math.random() < firingChance) {
-            connectionCount++;
-            const dot2 = closest[k];
-            const avgDepth = (dot1.depth + dot2.depth) / 2;
-            const electricIntensity = 1.0;
-            ctx.strokeStyle = `rgba(80, 200, 255, ${
-              electricIntensity * avgDepth
-            })`;
-            ctx.lineWidth = 2.5 + Math.random() * 1.5;
-            ctx.beginPath();
-            ctx.moveTo(dot1.x, dot1.y);
-            const midX = (dot1.x + dot2.x) / 2 + (Math.random() - 0.5) * 18;
-            const midY = (dot1.y + dot2.y) / 2 + (Math.random() - 0.5) * 18;
-            ctx.quadraticCurveTo(midX, midY, dot2.x, dot2.y);
-            ctx.stroke();
-          }
-        }
-      }
 
       // Draw big planet dots as mini web/grid
       // --- Dot Hierarchy Comments ---
@@ -731,20 +645,39 @@ const BackgroundElements = () => {
           const randSize = bigDotStaticSizes[pIdx][i];
 
           // Depth-based alpha for 3D effect (front dots brighter, back dots dimmer)
-          const depth = (rotatedZ + 1) / 2; // Normalize to 0-1
-          const alpha = 0.3 + depth * 0.7; // Front dots more opaque
+          const localDepth = (rotatedZ + 1) / 2; // Normalize to 0-1 for local dot depth
+          const localAlpha = 0.3 + localDepth * 0.7; // Front dots more opaque
 
           ctx.beginPath();
           ctx.arc(dotX, dotY, randSize, 0, Math.PI * 2);
-          // ctx.fillStyle = `rgba(80, 70, 50, ${alpha})`; // Original: Darker version of main sphere color
-          // Add subtle shade variation for RED dots (back to brownish but slightly varied)
-          const redShade = 80 + (pIdx % 3) * 5; // Subtle variation: 80, 85, 90
-          const greenShade = 70 + (pIdx % 3) * 3; // Subtle variation: 70, 73, 76
-          const blueShade = 50 + (pIdx % 3) * 4; // Subtle variation: 50, 54, 58
-          ctx.fillStyle = `rgba(${redShade}, ${greenShade}, ${blueShade}, ${alpha})`;
-          ctx.fill();
+          // Get planet configuration for color and special properties
+          const planetConfig = PLANET_DOTS_CONFIG.planets[pIdx];
+          
+          if (planetConfig && planetConfig.isFat && planetConfig.color) {
+            // � BEIGE - Fat planet dots (beige color closer to brown sphere)
+            const beigeColor = planetConfig.color;
+            ctx.fillStyle = `rgba(${beigeColor.r}, ${beigeColor.g}, ${beigeColor.b}, ${localAlpha * beigeColor.alpha})`;
+            ctx.fill();
+            
+            // Add halo effect for fat planets
+            if (planetConfig.hasHalo) {
+              ctx.beginPath();
+              ctx.arc(dotX, dotY, randSize * 1.8, 0, Math.PI * 2);
+              ctx.fillStyle = `rgba(${beigeColor.r}, ${beigeColor.g}, ${beigeColor.b}, ${localAlpha * beigeColor.alpha * 0.3})`;
+              ctx.fill();
+            }
+          } else {
+            // 🔴 RED - Normal planet dots (bright red)
+            // TESTING: Make planet dots BRIGHT RED to identify them
+            const redShade = 255; // Bright red for identification
+            const greenShade = 0; // No green
+            const blueShade = 0; // No blue
+            ctx.fillStyle = `rgba(${redShade}, ${greenShade}, ${blueShade}, ${localAlpha})`;
+            ctx.fill();
+          }
         }
 
+        // 🟢 GREEN - Planet moons (small dots orbiting around red planet dots)
         // Render moons for this RED dot (planet)
         if (planet.moons) {
           for (let m = 0; m < planet.moons.count; m++) {
@@ -780,8 +713,8 @@ const BackgroundElements = () => {
             const moonSize = planet.moons.sizes[m] * planet.size; // Scale moon with planet
 
             // Apply depth-based effects (moons behind the planet are dimmer)
-            const depth = (finalZ + moonDistance) / (moonDistance * 2); // 0 to 1 range
-            const alpha = 0.5 + depth * 0.5; // Front moons brighter
+            const localDepth = (finalZ + moonDistance) / (moonDistance * 2); // 0 to 1 range
+            const localAlpha = 0.5 + localDepth * 0.5; // Front moons brighter
 
             // Draw moon with darker colors than parent RED dot
             ctx.beginPath();
@@ -796,13 +729,9 @@ const BackgroundElements = () => {
             const moonBlue = Math.max(25, blueShade - 15);
 
             if (m === 0) {
-              ctx.fillStyle = `rgba(${moonRed + 10}, ${
-                moonGreen + 5
-              }, ${moonBlue}, ${alpha * 0.8})`; // Slightly different shade for first moon
+              ctx.fillStyle = `rgba(0, 255, 0, ${localAlpha * 0.8})`; // TESTING: Green for planet dot moons (first)
             } else {
-              ctx.fillStyle = `rgba(${moonRed}, ${moonGreen + 8}, ${
-                moonBlue + 5
-              }, ${alpha * 0.8})`; // Slightly different shade for second moon
+              ctx.fillStyle = `rgba(0, 200, 0, ${localAlpha * 0.8})`; // TESTING: Dark green for planet dot moons (second)
             }
             ctx.fill();
 
@@ -810,13 +739,9 @@ const BackgroundElements = () => {
             ctx.beginPath();
             ctx.arc(moonX, moonY, moonSize * 1.5, 0, Math.PI * 2);
             if (m === 0) {
-              ctx.fillStyle = `rgba(${moonRed + 10}, ${
-                moonGreen + 5
-              }, ${moonBlue}, ${alpha * 0.2})`; // Darker glow
+              ctx.fillStyle = `rgba(0, 255, 0, ${localAlpha * 0.2})`; // TESTING: Green glow for planet dot moons
             } else {
-              ctx.fillStyle = `rgba(${moonRed}, ${moonGreen + 8}, ${
-                moonBlue + 5
-              }, ${alpha * 0.2})`; // Darker glow
+              ctx.fillStyle = `rgba(0, 200, 0, ${localAlpha * 0.2})`; // TESTING: Dark green glow for planet dot moons
             }
             ctx.fill();
           }
@@ -844,21 +769,75 @@ const BackgroundElements = () => {
               radius *
               dot._staticDot.orbitsPlanet.orbitRadius;
         }
-        // Draw moons
+        // 🟣 PURPLE - Static dot moons (small dots orbiting around BROWN static dots with varied orbital configurations)
+        // Draw moons with varied orbital configurations
         if (dot._staticDot && dot._staticDot.moons) {
-          // Oscillation factor for vertical shift
-          const oscillation = Math.sin(time * 0.5 + i * 0.2) * 8;
+          // Debug: Log moon data for the first few dots
+          if (i < 5 && dot._staticDot.moons.configs) {
+            console.log(
+              `Dot ${i} has ${dot._staticDot.moons.count} moons with configs:`,
+              dot._staticDot.moons.configs
+            );
+          }
+
           for (let m = 0; m < dot._staticDot.moons.count; m++) {
-            const moonAngle =
-              time * (0.8 + m * 0.5) + dot._staticDot.moons.offsets[m];
-            const moonRadius = dot.size * 2.5 + m * 6;
-            const moonX = dot.x + Math.cos(moonAngle) * moonRadius;
-            const moonY =
-              dot.y + Math.sin(moonAngle) * moonRadius + oscillation;
-            ctx.beginPath();
-            ctx.arc(moonX, moonY, dot.size * 0.45, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(140, 130, 100, 0.8)`; // Brighter moon color (was 120, 110, 80, 0.7)
-            ctx.fill();
+            // Check if we have new detailed moon configs or old simple offsets
+            if (
+              dot._staticDot.moons.configs &&
+              dot._staticDot.moons.configs[m]
+            ) {
+              // Use new detailed moon configuration
+              const moonConfig = dot._staticDot.moons.configs[m];
+
+              // Calculate moon angle with custom speed
+              const moonAngle =
+                time * moonConfig.orbitSpeed + moonConfig.orbitAngle;
+
+              // Debug: Log animation values for first moon of first dot
+              if (i === 0 && m === 0) {
+                console.log(
+                  `Moon animation - time: ${time.toFixed(3)}, speed: ${
+                    moonConfig.orbitSpeed
+                  }, angle: ${moonAngle.toFixed(3)}`
+                );
+              }
+
+              // Calculate orbit radius (relative to parent dot size)
+              const orbitRadius = dot.size * moonConfig.orbitRadius;
+
+              // Apply orbital tilt for 3D-like orbits
+              // orbitTilt: 0 = horizontal, PI/2 = vertical
+              const tiltFactor = Math.sin(moonConfig.orbitTilt);
+              const horizontalRadius =
+                orbitRadius * Math.cos(moonConfig.orbitTilt);
+              const verticalRadius = orbitRadius * tiltFactor;
+
+              // Calculate moon position with tilt
+              const moonX = dot.x + Math.cos(moonAngle) * horizontalRadius;
+              const moonY = dot.y + Math.sin(moonAngle) * verticalRadius;
+
+              // Calculate moon size relative to parent dot
+              const moonSize = dot.size * moonConfig.moonSize;
+
+              // Draw the moon
+              ctx.beginPath();
+              ctx.arc(moonX, moonY, moonSize, 0, Math.PI * 2);
+              ctx.fillStyle = `rgba(0, 255, 0, 1.0)`; // DEBUGGING: Bright neon green for static dot moons
+              ctx.fill();
+            } else if (dot._staticDot.moons.offsets) {
+              // Fallback to old simple offset system for compatibility
+              const oscillation = Math.sin(time * 0.5 + i * 0.2) * 8;
+              const moonAngle =
+                time * (0.8 + m * 0.5) + dot._staticDot.moons.offsets[m];
+              const moonRadius = dot.size * 2.5 + m * 6;
+              const moonX = dot.x + Math.cos(moonAngle) * moonRadius;
+              const moonY =
+                dot.y + Math.sin(moonAngle) * moonRadius + oscillation;
+              ctx.beginPath();
+              ctx.arc(moonX, moonY, dot.size * 0.45, 0, Math.PI * 2);
+              ctx.fillStyle = `rgba(0, 255, 0, 1.0)`; // DEBUGGING: Bright neon green for static dot moons (fallback)
+              ctx.fill();
+            }
           }
         }
       });
@@ -965,14 +944,16 @@ const BackgroundElements = () => {
           ctx.beginPath();
           ctx.arc(dotX, dotY, randSize * perspectiveScale, 0, Math.PI * 2); // Apply perspective scaling
           // ctx.fillStyle = `rgba(80, 70, 50, ${alpha})`; // Original: Darker version of main sphere color
-          // Brighter shade variation for orbital dots - reduced darkness
-          const redShade = 110 + (oDx % 4) * 5; // Brighter variation: 110, 115, 120, 125 (was 80-92)
-          const greenShade = 100 + (oDx % 4) * 4; // Brighter variation: 100, 104, 108, 112 (was 70-79)
-          const blueShade = 75 + (oDx % 4) * 4; // Brighter variation: 75, 79, 83, 87 (was 50-59)
+          // 🔵 BLUE - Orbital big dots (large dots with moons orbiting around them)
+          // TESTING: Make orbital big dots BRIGHT BLUE to identify them
+          const redShade = 0; // No red
+          const greenShade = 0; // No green
+          const blueShade = 255; // Bright blue
           ctx.fillStyle = `rgba(${redShade}, ${greenShade}, ${blueShade}, ${alpha})`;
           ctx.fill();
         }
 
+        // 🟢 GREEN - Orbital big dot moons (small dots orbiting around blue dots)
         // Render moons for this orbital BIG dot
         if (orbitalDot.moons) {
           // Check if this is the biggest BLUE dot (last in array)
@@ -1006,45 +987,16 @@ const BackgroundElements = () => {
               : miniRadius * 0.08 * perspectiveScale; // Bigger moons for biggest blue dot
             ctx.arc(moonX, moonY, moonSize, 0, Math.PI * 2);
 
+            // 🟡 YELLOW - Orbital big dot moons (small dots orbiting around blue orbital big dots)
             // Make moon colors same as their parent BIG dots with fade-out - BRIGHTER!
             if (isBiggestBlueDot) {
-              // For biggest blue dot: use SAME BRIGHT color as parent with minimal fade-out
-              const parentRed = 110 + (oDx % 4) * 5; // Same as parent values
-              const parentGreen = 100 + (oDx % 4) * 4;
-              const parentBlue = 75 + (oDx % 4) * 4;
-
-              // Much less fade-out - keep moons bright!
-              const distanceFromParent = Math.sqrt(
-                (moonX - orbitalX) ** 2 + (moonY - orbitalY) ** 2
-              );
-              const maxDistance = moonDistance;
-              const fadeOut = Math.max(
-                0.8,
-                1 - (distanceFromParent / maxDistance) * 0.2
-              ); // Only fade to 80% at max distance (was 30%)
-
-              ctx.fillStyle = `rgba(${parentRed}, ${parentGreen}, ${parentBlue}, ${
-                0.95 * perspectiveAlpha * fadeOut
-              })`; // Higher base alpha (was 0.9)
+              ctx.fillStyle = `rgba(255, 255, 0, ${
+                0.95 * perspectiveAlpha * 0.9
+              })`; // TESTING: Yellow for biggest orbital big dot moons
             } else {
-              // For normal orbital dots: same bright color as parent with minimal fade-out
-              const parentRed = 110 + (oDx % 4) * 5; // Same as parent values
-              const parentGreen = 100 + (oDx % 4) * 4;
-              const parentBlue = 75 + (oDx % 4) * 4;
-
-              // Much less fade-out - keep moons bright!
-              const distanceFromParent = Math.sqrt(
-                (moonX - orbitalX) ** 2 + (moonY - orbitalY) ** 2
-              );
-              const maxDistance = moonDistance;
-              const fadeOut = Math.max(
-                0.8,
-                1 - (distanceFromParent / maxDistance) * 0.2
-              ); // Only fade to 80% at max distance (was 30%)
-
-              ctx.fillStyle = `rgba(${parentRed}, ${parentGreen}, ${parentBlue}, ${
-                0.95 * perspectiveAlpha * fadeOut
-              })`; // Higher base alpha (was 0.9)
+              ctx.fillStyle = `rgba(255, 255, 0, ${
+                0.95 * perspectiveAlpha * 0.9
+              })`; // TESTING: Yellow for orbital big dot moons
             }
             ctx.fill();
           }
@@ -1057,6 +1009,7 @@ const BackgroundElements = () => {
       // Remove visible border around sphere
       // (delete or comment out the border drawing code)
 
+      // 🟣 PURPLE - Name moons (dots orbiting around the name text "RAITIS" and "KRASLOVSKIS")
       // Add 2 moons orbiting around each name separately - "RAITIS" and "KRASLOVSKIS"
 
       // RAITIS moon (first name) - positioned around first line

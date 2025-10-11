@@ -1,12 +1,9 @@
 import { Inter } from 'next/font/google';
 import './globals.css';
 import '../styles/fonts.css';
-import { AnimationProvider } from '@/contexts/AnimationContext';
-import { NavigationProvider } from '@/contexts/NavigationContext';
-import ErrorBoundary from '@/components/ErrorBoundary';
-import SimpleNavigation from './components/SimpleNavigation';
+import RootLayoutContent from '@/components/layout/RootLayoutContent';
+import { SimpleNavigation } from '@/components/navigation';
 import BackgroundElements from './components/BackgroundElements';
-import { styles } from '@/styles';
 import type { Metadata, Viewport } from 'next';
 
 const inter = Inter({
@@ -40,23 +37,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang='en' className={inter.variable}>
-      <body
-        className='min-h-screen text-gray-900 font-sans antialiased'
-        style={styles.layout.saturnBody}
-      >
-        {/* Saturn-colored frame border */}
-        <div style={styles.layout.saturnFrame} />
-
-        <ErrorBoundary>
-          <NavigationProvider>
-            <AnimationProvider>
-              <BackgroundElements />
-              <SimpleNavigation />
-              <main>{children}</main>
-            </AnimationProvider>
-          </NavigationProvider>
-        </ErrorBoundary>
-      </body>
+      <RootLayoutContent>
+        {/* Background Elements - Preserving EXACT original placement and behavior */}
+        <BackgroundElements />
+        {/* Navigation - Preserving EXACT original placement and behavior */}
+        <SimpleNavigation />
+        {children}
+      </RootLayoutContent>
     </html>
   );
 }

@@ -23,6 +23,11 @@ import {
   renderMobileSphereGlow,
   getMobileFrameRate,
 } from '../helpers/mobileBgHelpers';
+import {
+  SpatialOptimizer,
+  getViewport,
+  SpatialMetrics,
+} from '../helpers/spatialOptimization';
 import { SphereInfo } from '../types/backgroundTypes';
 
 const BackgroundElements = () => {
@@ -60,6 +65,17 @@ const BackgroundElements = () => {
     const targetFrameRate = isLowPowerDevice ? 30 : 60;
     let lastFrameTime = 0;
     const frameInterval = 1000 / targetFrameRate; // Convert to milliseconds
+
+    // Initialize spatial optimization
+    let spatialOptimizer: SpatialOptimizer | null = null;
+    let spatialMetrics: SpatialMetrics = {
+      totalDots: 0,
+      visibleDots: 0,
+      culledDots: 0,
+      cullingRatio: 0,
+      spatialGridCells: 0,
+      spatialQueryTime: 0,
+    };
 
     // Setup mobile canvas if needed
     if (isMobile) {
@@ -337,6 +353,21 @@ const BackgroundElements = () => {
     const resizeCanvas = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
+
+      // Initialize or update spatial optimizer when canvas size changes
+      const viewport = getViewport(canvas);
+      const bounds = {
+        x: 0,
+        y: 0,
+        width: canvas.width,
+        height: canvas.height,
+      };
+
+      if (!spatialOptimizer) {
+        spatialOptimizer = new SpatialOptimizer(bounds, viewport);
+      } else {
+        spatialOptimizer.updateViewport(viewport);
+      }
     };
 
     resizeCanvas();
@@ -350,9 +381,7 @@ const BackgroundElements = () => {
       }
       lastFrameTime = currentTime;
 
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Use mobile-optimized rendering if on mobile device
+      ctx.clearRect(0, 0, canvas.width, canvas.height); // Use mobile-optimized rendering if on mobile device
       if (isMobile) {
         renderMobileBackgroundPattern(ctx, canvas, time);
       } else {
@@ -486,8 +515,16 @@ const BackgroundElements = () => {
         });
       });
 
-      // Draw dots
-      dots.forEach((dot) => {
+      // Apply spatial optimization to cull off-screen dots
+      let optimizedDots = dots;
+      if (spatialOptimizer) {
+        const result = spatialOptimizer.optimizeDots(dots);
+        optimizedDots = result.visibleDots;
+        spatialMetrics = result.metrics;
+      }
+
+      // Draw dots (only visible ones after spatial optimization)
+      optimizedDots.forEach((dot) => {
         // Enhanced firing effects: size pop and shine
         let pulse = 0;
         let sizePop = 0;

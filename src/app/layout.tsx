@@ -2,6 +2,8 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import '../styles/fonts.css';
 import { AnimationProvider } from '@/contexts/AnimationContext';
+import { NavigationProvider } from '@/contexts/NavigationContext';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import SimpleNavigation from './components/SimpleNavigation';
 import BackgroundElements from './components/BackgroundElements';
 import { styles } from '@/styles';
@@ -22,6 +24,13 @@ export const metadata: Metadata = {
   title: 'Raitis Kraslovskis - Portfolio',
   description:
     'you think it. i make it. you break it. i solve it. universe approves. we happy. thats a deal.',
+  // Security-related metadata
+  robots: 'index, follow',
+  referrer: 'strict-origin-when-cross-origin',
+  // Prevent sensitive information leakage
+  other: {
+    'format-detection': 'telephone=no',
+  },
 };
 
 export default function RootLayout({
@@ -38,11 +47,15 @@ export default function RootLayout({
         {/* Saturn-colored frame border */}
         <div style={styles.layout.saturnFrame} />
 
-        <AnimationProvider>
-          <BackgroundElements />
-          <SimpleNavigation />
-          <main>{children}</main>
-        </AnimationProvider>
+        <ErrorBoundary>
+          <NavigationProvider>
+            <AnimationProvider>
+              <BackgroundElements />
+              <SimpleNavigation />
+              <main>{children}</main>
+            </AnimationProvider>
+          </NavigationProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );

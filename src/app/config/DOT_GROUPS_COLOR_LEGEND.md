@@ -1,22 +1,18 @@
-# 🎨 D🟤 **BROWN** - Main sphere static dots (small dots on central sphere surface)
-🔴 **RED** - Normal planet dots (the regular RED dots with ~100 small red dots each)  
-🟫 **BEIGE** - Fat planet dots (2x bigger, 0.2x slower, beige color closer to brown with halos) - **3 out of 5 planets**
-🔵 **BLUE** - Orbital big dots (the big BLUE dots with ~80 small blue dots each)
-🟣 **PURPLE** - Static dot moons (small purple dots orbiting static dots) - **CURRENTLY NEON GREEN FOR DEBUGGING**
-🟢 **GREEN** - Planet dot moons (green dots orbiting around RED/BEIGE planet dots)
-🟡 **YELLOW** - Orbital big dot moons (yellow dots orbiting around BLUE orbital big dots)ps Color Legend for Development/Testing
+# Dot Groups Color Legend for Development/Testing
 
 This document defines the color scheme used during development to easily identify and reference different dot groups in the background animation system.
 
 ## Color Assignments
 
-🟤 **BROWN** - Main sphere static dots (small dots on central sphere surface)
-🔴 **RED** - Normal planet dots (the regular RED dots with ~100 small red dots each)  
-� **AMBER** - Fat planet dots (2x bigger, 0.2x slower, dimmed amber color with halos) - **3 out of 5 planets**
-�🔵 **BLUE** - Orbital big dots (the big BLUE dots with ~80 small blue dots each)
-🟣 **PURPLE** - Static dot moons (small purple dots orbiting static dots) - **CURRENTLY NEON GREEN FOR DEBUGGING**
-🟢 **GREEN** - Planet dot moons (green dots orbiting around RED/AMBER planet dots)
-🟡 **YELLOW** - Orbital big dot moons (yellow dots orbiting around BLUE orbital big dots)
+| Emoji | Color | Dot Group | Description |
+|-------|-------|-----------|-------------|
+| 🟤 | **BROWN** | Main sphere static dots | Small dots on central sphere surface (~784 dots) |
+| 🔴 | **RED** | Normal planet dots | Regular planets with ~100 small dots each |
+| 🟫 | **BEIGE** | Fat planet dots | 2x bigger, 0.2x slower, with halos (3 out of 5 planets) |
+| 🔵 | **BLUE** | Orbital big dots | Big orbital dots with ~80 small dots each |
+| 🟣 | **PURPLE** | Static dot moons | Small dots orbiting static dots (NEON GREEN for debugging) |
+| 🟢 | **GREEN** | Planet dot moons | Moons orbiting around RED/BEIGE planet dots |
+| 🟡 | **YELLOW** | Orbital big dot moons | Moons orbiting around BLUE orbital big dots |
 
 ## Usage in Communication
 
@@ -36,7 +32,7 @@ Each color group corresponds to specific code sections in `BackgroundElements.ts
 
 1. **BROWN (Main sphere static dots)**: Line ~505 - `ctx.fillStyle = rgba(139, 69, 19, ${baseAlpha})`
 2. **RED (Planet dots)**: Line ~715 - Planet dot rendering with ~100 small dots each
-3. **BLUE (Orbital big dots)**: Line ~945 - Orbital big dot rendering with ~80 small dots each  
+3. **BLUE (Orbital big dots)**: Line ~945 - Orbital big dot rendering with ~80 small dots each
 4. **PURPLE (Static dot moons)**: Line ~831 - Static dot moon rendering
 5. **GREEN (Planet dot moons)**: Line ~770 - Planet dot moon rendering
 6. **YELLOW (Orbital big dot moons)**: Line ~975 - Orbital big dot moon rendering
@@ -44,6 +40,7 @@ Each color group corresponds to specific code sections in `BackgroundElements.ts
 ## Current Configuration Parameters
 
 ### 🟤 BROWN - Main Sphere Static Dots
+
 **Visual Properties:**
 - **Shape**: Perfectly round circles with subtle halo effect
 - **Color**: `rgba(139, 69, 19, ${baseAlpha})` (Saddle brown)
@@ -53,17 +50,18 @@ Each color group corresponds to specific code sections in `BackgroundElements.ts
 - **Total Count**: ~784 dots (filtered by sphere radius 0.9)
 
 **Technical Details:**
-- **Grid Resolution**: 28×28 
+- **Grid Resolution**: 28×28
 - **Sphere Radius**: 0.9 (keeps dots slightly inside sphere)
 - **Base Offset Range**: -0.05 to +0.05 (small organic positioning variation)
 - **Halo Size**: 1.6× main dot size
 - **Halo Alpha**: 0.15× main dot alpha (very subtle)
 
 ### 🟣 PURPLE - Static Dot Moons (Currently NEON GREEN for debugging)
+
 **Visual Properties:**
 - **Shape**: Perfect circles
-- **Color**: `rgba(0, 255, 0, 1.0)` (Bright neon green - debugging color)
-- **Original Color**: Purple `rgba(128, 0, 128, 0.8)` 
+- **Debug Color**: `rgba(0, 255, 0, 1.0)` (Bright neon green)
+- **Original Color**: Purple `rgba(128, 0, 128, 0.8)`
 - **Parent**: Orbit around BROWN static dots
 - **Moon Size**: 20%-70% of parent dot size
 

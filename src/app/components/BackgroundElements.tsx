@@ -4,8 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useAnimationActions } from '@/contexts/AnimationContext';
 import { useDevice } from '../hooks/useDevice';
 import { styles } from '../../styles';
-import { ORBITAL_BIG_DOTS_CONFIG } from '../config/backgroundConfig';
-import { ORBITAL_BIG_DOTS_CONFIG as ORBITAL_PARAMS_CONFIG } from '../config/orbitalBigDotsConfig';
+import { ORBITAL_BIG_DOTS_CONFIG } from '../config/orbitalBigDotsConfig';
 import { PLANET_DOTS_CONFIG } from '../config/planetDotsConfig';
 import {
   STATIC_DOTS_GRID_CONFIG,
@@ -26,9 +25,81 @@ import {
 import {
   SpatialOptimizer,
   getViewport,
-  SpatialMetrics,
 } from '../helpers/spatialOptimization';
 import { SphereInfo } from '../types/backgroundTypes';
+
+// TV Static Halo Effect Function
+const drawStaticHalo = (
+  ctx: CanvasRenderingContext2D,
+  centerX: number,
+  centerY: number,
+  radius: number,
+  intensity: number,
+  seed: number,
+  innerRadius?: number // Optional inner radius for ring effect
+) => {
+  const grainSize = 0.8; // Very tiny grains
+  const density = 0.4; // Medium density for good coverage
+  const baseInnerRadius = innerRadius || radius * 0.8; // Base inner boundary
+  const baseOuterRadius = radius; // Base outer boundary
+  
+  // Static colors palette - pure contrast
+  const staticColors = [
+    `rgba(0, 0, 0, ${intensity})`,           // Black
+    `rgba(255, 255, 255, ${intensity})`,     // White
+    `rgba(60, 60, 60, ${intensity * 0.7})`, // Dark gray
+    `rgba(200, 200, 200, ${intensity * 0.8})`, // Light gray
+  ];
+  
+  // Generate completely random tiny grains with organic boundaries
+  const numGrains = Math.floor((radius * radius - baseInnerRadius * baseInnerRadius) * 0.3);
+  
+  for (let i = 0; i < numGrains; i++) {
+    // Create completely random position using multiple noise sources
+    const randomSeed1 = (seed * 1337 + i * 7919) % 65536;
+    const randomSeed2 = (seed * 2341 + i * 4801) % 65536;
+    const randomSeed3 = (seed * 5923 + i * 3163) % 65536;
+    const randomSeed4 = (seed * 4127 + i * 9001) % 65536;
+    
+    // Generate random angle
+    const angle = (Math.sin(randomSeed1 * 0.0001) * 0.5 + 0.5) * Math.PI * 2;
+    
+    // Create organic, wavy boundaries instead of perfect circles
+    const angleNoise = Math.sin(angle * 6 + seed * 0.01) * 0.15; // Wavy distortion
+    const radiusNoise = Math.sin(angle * 3.7 + seed * 0.013) * 0.12; // Different frequency
+    const timeNoise = Math.cos(seed * 0.007) * 0.08; // Time-based variation
+    
+    // Apply organic distortion to both inner and outer boundaries
+    const organicInnerRadius = baseInnerRadius * (1 + angleNoise + radiusNoise);
+    const organicOuterRadius = baseOuterRadius * (1 + angleNoise * 0.7 + timeNoise);
+    
+    // Generate random radius within the organic boundaries
+    const radiusRandom = Math.sin(randomSeed2 * 0.0001) * 0.5 + 0.5;
+    const actualRadius = organicInnerRadius + radiusRandom * (organicOuterRadius - organicInnerRadius);
+    
+    // Add some extra randomness to make it even more chaotic
+    const extraRandomX = (Math.sin(randomSeed4 * 0.00011) * 0.5 + 0.5 - 0.5) * 8;
+    const extraRandomY = (Math.cos(randomSeed4 * 0.00009) * 0.5 + 0.5 - 0.5) * 8;
+    
+    // Convert to cartesian coordinates with extra chaos
+    const grainX = centerX + Math.cos(angle) * actualRadius + extraRandomX;
+    const grainY = centerY + Math.sin(angle) * actualRadius + extraRandomY;
+    
+    // Random density check - some grains don't appear
+    const densityCheck = Math.sin(randomSeed3 * 0.0001) * 0.5 + 0.5;
+    if (densityCheck > density) continue;
+    
+    // Select random color
+    const colorNoise = Math.cos(randomSeed1 * 0.00013) * 0.5 + 0.5;
+    const colorIndex = Math.floor(colorNoise * staticColors.length);
+    ctx.fillStyle = staticColors[colorIndex];
+    
+    // Draw tiny grain
+    ctx.beginPath();
+    ctx.arc(grainX, grainY, grainSize, 0, Math.PI * 2);
+    ctx.fill();
+  }
+};
 
 const BackgroundElements = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -68,14 +139,6 @@ const BackgroundElements = () => {
 
     // Initialize spatial optimization
     let spatialOptimizer: SpatialOptimizer | null = null;
-    let spatialMetrics: SpatialMetrics = {
-      totalDots: 0,
-      visibleDots: 0,
-      culledDots: 0,
-      cullingRatio: 0,
-      spatialGridCells: 0,
-      spatialQueryTime: 0,
-    };
 
     // Setup mobile canvas if needed
     if (isMobile) {
@@ -222,7 +285,7 @@ const BackgroundElements = () => {
         tilts: number[];
       };
     }[] = [];
-    const orbitalBigDotCount = ORBITAL_PARAMS_CONFIG.count; // Use hardcoded value for consistency
+    const orbitalBigDotCount = ORBITAL_BIG_DOTS_CONFIG.count; // Use hardcoded value for consistency
     for (let o = 0; o < orbitalBigDotCount; o++) {
       // Add moons to ALL orbital BIG dots (100% chance)
       const hasMoons = true; // All orbital BIG dots will have moons
@@ -237,13 +300,8 @@ const BackgroundElements = () => {
           }
         : undefined;
 
-      // Check if this is the last (extra) orbital dot to make it bigger
-      const isExtraBigDot = o === orbitalBigDotCount - 1;
-
-      // No more moon overrides needed - values are already set correctly in config!
-
       // Get hardcoded orbital parameters for this dot
-      const orbitalParams = ORBITAL_PARAMS_CONFIG.orbitalParams[o];
+      const orbitalParams = ORBITAL_BIG_DOTS_CONFIG.orbitalParams[o];
 
       orbitalBigDots.push({
         x: 0,
@@ -518,9 +576,7 @@ const BackgroundElements = () => {
       // Apply spatial optimization to cull off-screen dots
       let optimizedDots = dots;
       if (spatialOptimizer) {
-        const result = spatialOptimizer.optimizeDots(dots);
-        optimizedDots = result.visibleDots;
-        spatialMetrics = result.metrics;
+        optimizedDots = spatialOptimizer.optimizeDots(dots).visibleDots;
       }
 
       // Draw dots (only visible ones after spatial optimization)
@@ -570,16 +626,8 @@ const BackgroundElements = () => {
         // TESTING: Main sphere static dots = BROWN
         const brownColor = `rgba(139, 69, 19, ${baseAlpha})`; // Saddle brown
 
-        // Create perfectly round dots with subtle halo
+        // Create perfectly round dots
         const baseSize = dot.size + pulse + sizePop;
-
-        // Draw subtle halo first (larger, very light version of same color)
-        const haloSize = baseSize * 1.6; // 60% larger than main dot
-        const haloAlpha = baseAlpha * 0.15; // Very light - 15% of main dot opacity
-        ctx.fillStyle = `rgba(139, 69, 19, ${haloAlpha})`; // Same brown but very light
-        ctx.beginPath();
-        ctx.arc(dot.x, dot.y, haloSize, 0, Math.PI * 2);
-        ctx.fill();
 
         // Draw main perfectly round dot
         ctx.fillStyle = brownColor;
@@ -633,7 +681,6 @@ const BackgroundElements = () => {
         const planetX = sphereX + tiltedX * radius;
         const planetY = sphereY + tiltedY * radius;
         // Render BIG dot as a sphere made of small random dots with cylindrical spin
-        const miniGridRes = 20; // Better resolution for sphere appearance
         const miniRadius = planet.size * 4.5;
         const spinAngle = time * planet.spinSpeed * planet.spinDirection; // Use varied spin parameters
 
@@ -757,33 +804,16 @@ const BackgroundElements = () => {
             const localDepth = (finalZ + moonDistance) / (moonDistance * 2); // 0 to 1 range
             const localAlpha = 0.5 + localDepth * 0.5; // Front moons brighter
 
-            // Draw moon with darker colors than parent RED dot
+            // Draw moon - 🟢 GREEN for planet dot moons
             ctx.beginPath();
             ctx.arc(moonX, moonY, moonSize, 0, Math.PI * 2);
-            // Make moons darker than their parent RED dot (using similar brownish tones but darker)
-            const redShade = 80 + (pIdx % 3) * 5; // Same variation as parent
-            const greenShade = 70 + (pIdx % 3) * 3;
-            const blueShade = 50 + (pIdx % 3) * 4;
-            // Make moon colors darker but not too dark (reduce by ~20-25 instead of 30-40)
-            const moonRed = Math.max(45, redShade - 20);
-            const moonGreen = Math.max(40, greenShade - 18);
-            const moonBlue = Math.max(25, blueShade - 15);
-
-            if (m === 0) {
-              ctx.fillStyle = `rgba(0, 255, 0, ${localAlpha * 0.8})`; // TESTING: Green for planet dot moons (first)
-            } else {
-              ctx.fillStyle = `rgba(0, 200, 0, ${localAlpha * 0.8})`; // TESTING: Dark green for planet dot moons (second)
-            }
+            ctx.fillStyle = `rgba(0, ${m === 0 ? 255 : 200}, 0, ${localAlpha * 0.8})`;
             ctx.fill();
 
-            // Add a subtle glow effect with depth (also darker)
+            // Add subtle glow
             ctx.beginPath();
             ctx.arc(moonX, moonY, moonSize * 1.5, 0, Math.PI * 2);
-            if (m === 0) {
-              ctx.fillStyle = `rgba(0, 255, 0, ${localAlpha * 0.2})`; // TESTING: Green glow for planet dot moons
-            } else {
-              ctx.fillStyle = `rgba(0, 200, 0, ${localAlpha * 0.2})`; // TESTING: Dark green glow for planet dot moons
-            }
+            ctx.fillStyle = `rgba(0, ${m === 0 ? 255 : 200}, 0, ${localAlpha * 0.2})`;
             ctx.fill();
           }
         }
@@ -813,14 +843,6 @@ const BackgroundElements = () => {
         // 🟣 PURPLE - Static dot moons (small dots orbiting around BROWN static dots with varied orbital configurations)
         // Draw moons with varied orbital configurations
         if (dot._staticDot && dot._staticDot.moons) {
-          // Debug: Log moon data for the first few dots
-          if (i < 5 && dot._staticDot.moons.configs) {
-            console.log(
-              `Dot ${i} has ${dot._staticDot.moons.count} moons with configs:`,
-              dot._staticDot.moons.configs
-            );
-          }
-
           for (let m = 0; m < dot._staticDot.moons.count; m++) {
             // Check if we have new detailed moon configs or old simple offsets
             if (
@@ -833,15 +855,6 @@ const BackgroundElements = () => {
               // Calculate moon angle with custom speed
               const moonAngle =
                 time * moonConfig.orbitSpeed + moonConfig.orbitAngle;
-
-              // Debug: Log animation values for first moon of first dot
-              if (i === 0 && m === 0) {
-                console.log(
-                  `Moon animation - time: ${time.toFixed(3)}, speed: ${
-                    moonConfig.orbitSpeed
-                  }, angle: ${moonAngle.toFixed(3)}`
-                );
-              }
 
               // Calculate orbit radius (relative to parent dot size)
               const orbitRadius = dot.size * moonConfig.orbitRadius;
@@ -1131,6 +1144,20 @@ const BackgroundElements = () => {
       );
       ctx.fillStyle = `rgba(160, 120, 180, ${kraslovskisAlpha * 0.25})`;
       ctx.fill();
+
+      // Draw TV static halo around the main sphere (outer layer only)
+      const staticOuterRadius = radius * 1.4; // 40% larger than the main sphere
+      const staticInnerRadius = radius * 1.1; // 10% larger than the main sphere (creates ring)
+      const staticIntensity = 0.5; // Visible static
+      drawStaticHalo(
+        ctx,
+        sphereX,
+        sphereY,
+        staticOuterRadius,
+        staticIntensity,
+        time * 15,
+        staticInnerRadius
+      );
 
       // Render sphere glow using appropriate helper function
       if (isMobile) {

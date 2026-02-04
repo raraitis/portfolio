@@ -27,74 +27,100 @@ import {
   getViewport,
 } from '../helpers/spatialOptimization';
 import { SphereInfo } from '../types/backgroundTypes';
+import dynamic from 'next/dynamic';
 
-// TV Static Halo Effect Function
-const drawStaticHalo = (
+// Dynamically import Three.js component to avoid SSR issues
+const CosmicDustThree = dynamic(() => import('./CosmicDustThree'), {
+  ssr: false,
+});
+
+// DEBUG: Set to true to use Three.js cosmic dust only
+const USE_THREEJS_DUST = true;
+
+// Cosmic Dust Cloud - scattered, organic, oval-ish with escapees
+// Pre-computed color values for performance - NEON RED FOR DEBUGGING
+const DUST_COLORS = {
+  r: [255, 255, 200, 255],
+  g: [0, 50, 0, 100],
+  b: [0, 50, 0, 100],
+  a: [1, 0.8, 0.6, 0.5],
+};
+
+const drawCosmicDust = (
   ctx: CanvasRenderingContext2D,
   centerX: number,
   centerY: number,
   radius: number,
   intensity: number,
-  seed: number,
-  innerRadius?: number // Optional inner radius for ring effect
+  seed: number
 ) => {
-  const grainSize = 0.8; // Very tiny grains
-  const density = 0.4; // Medium density for good coverage
-  const baseInnerRadius = innerRadius || radius * 0.8; // Base inner boundary
-  const baseOuterRadius = radius; // Base outer boundary
-  
-  // Static colors palette - pure contrast
-  const staticColors = [
-    `rgba(0, 0, 0, ${intensity})`,           // Black
-    `rgba(255, 255, 255, ${intensity})`,     // White
-    `rgba(60, 60, 60, ${intensity * 0.7})`, // Dark gray
-    `rgba(200, 200, 200, ${intensity * 0.8})`, // Light gray
-  ];
-  
-  // Generate completely random tiny grains with organic boundaries
-  const numGrains = Math.floor((radius * radius - baseInnerRadius * baseInnerRadius) * 0.3);
-  
-  for (let i = 0; i < numGrains; i++) {
-    // Create completely random position using multiple noise sources
-    const randomSeed1 = (seed * 1337 + i * 7919) % 65536;
-    const randomSeed2 = (seed * 2341 + i * 4801) % 65536;
-    const randomSeed3 = (seed * 5923 + i * 3163) % 65536;
-    const randomSeed4 = (seed * 4127 + i * 9001) % 65536;
-    
-    // Generate random angle
-    const angle = (Math.sin(randomSeed1 * 0.0001) * 0.5 + 0.5) * Math.PI * 2;
-    
-    // Create organic, wavy boundaries instead of perfect circles
-    const angleNoise = Math.sin(angle * 6 + seed * 0.01) * 0.15; // Wavy distortion
-    const radiusNoise = Math.sin(angle * 3.7 + seed * 0.013) * 0.12; // Different frequency
-    const timeNoise = Math.cos(seed * 0.007) * 0.08; // Time-based variation
-    
-    // Apply organic distortion to both inner and outer boundaries
-    const organicInnerRadius = baseInnerRadius * (1 + angleNoise + radiusNoise);
-    const organicOuterRadius = baseOuterRadius * (1 + angleNoise * 0.7 + timeNoise);
-    
-    // Generate random radius within the organic boundaries
-    const radiusRandom = Math.sin(randomSeed2 * 0.0001) * 0.5 + 0.5;
-    const actualRadius = organicInnerRadius + radiusRandom * (organicOuterRadius - organicInnerRadius);
-    
-    // Add some extra randomness to make it even more chaotic
-    const extraRandomX = (Math.sin(randomSeed4 * 0.00011) * 0.5 + 0.5 - 0.5) * 8;
-    const extraRandomY = (Math.cos(randomSeed4 * 0.00009) * 0.5 + 0.5 - 0.5) * 8;
-    
-    // Convert to cartesian coordinates with extra chaos
-    const grainX = centerX + Math.cos(angle) * actualRadius + extraRandomX;
-    const grainY = centerY + Math.sin(angle) * actualRadius + extraRandomY;
-    
-    // Random density check - some grains don't appear
-    const densityCheck = Math.sin(randomSeed3 * 0.0001) * 0.5 + 0.5;
-    if (densityCheck > density) continue;
-    
-    // Select random color
-    const colorNoise = Math.cos(randomSeed1 * 0.00013) * 0.5 + 0.5;
-    const colorIndex = Math.floor(colorNoise * staticColors.length);
-    ctx.fillStyle = staticColors[colorIndex];
-    
-    // Draw tiny grain
+  // Oval shape - wider than tall for cosmic nebula feel
+  const ovalStretchX = 1.4;
+  const ovalStretchY = 0.75;
+
+  // More particles, cloud size controlled by radius parameter
+  const numParticles = 500;
+
+  // Pre-compute seed-based time wobble (only changes with seed/time)
+  const seedWobble = seed * 0.008;
+
+  for (let i = 0; i < numParticles; i++) {
+    // Fast pseudo-random using bit operations
+    const seed1 = ((seed * 1337 + i * 7919) | 0) % 65536;
+    const seed3 = ((seed * 5923 + i * 3163) | 0) % 65536;
+
+    // Early skip check - avoid calculations for skipped particles
+    if ((seed3 & 255) > 140) continue; // ~45% skip rate using bitwise
+
+    const seed2 = ((seed * 2341 + i * 4801) | 0) % 65536;
+    const seed4 = ((seed * 4127 + i * 9001) | 0) % 65536;
+
+    // Random angle (0 to 2π)
+    const angleNorm = (seed1 % 1000) * 0.001;
+    const angle = angleNorm * Math.PI * 2;
+
+    // Distance distribution
+    const distNorm = (seed2 % 1000) * 0.001;
+    let distance;
+    if (distNorm < 0.5) {
+      distance = radius * (0.2 + distNorm * 1.0);
+    } else if (distNorm < 0.8) {
+      distance = radius * (0.7 + (distNorm - 0.5) * 2.7);
+    } else {
+      distance = radius * (1.5 + (distNorm - 0.8) * 7.5);
+    }
+
+    // Simplified wobble - fewer trig calls
+    const wobble = Math.sin(angle * 2.5 + seedWobble) * radius * 0.25;
+    distance += wobble;
+
+    // Pre-compute cos/sin once per particle
+    const cosAngle = Math.cos(angle);
+    const sinAngle = Math.sin(angle);
+
+    // Apply oval stretch
+    const baseX = cosAngle * distance * ovalStretchX;
+    const baseY = sinAngle * distance * ovalStretchY;
+
+    // Chaos offset using seed directly (no trig)
+    const chaosAmount = distance > radius ? 40 : 15;
+    const chaosX = ((seed4 % 1000) * 0.001 - 0.5) * chaosAmount;
+    const chaosY = (((seed4 * 7) % 1000) * 0.001 - 0.5) * chaosAmount;
+
+    const grainX = centerX + baseX + chaosX;
+    const grainY = centerY + baseY + chaosY;
+
+    // Size and alpha based on distance
+    const distRatio = distance / (radius * 3);
+    const distanceFactor = Math.max(0.3, 1 - distRatio);
+    const grainSize = 1.5 + ((seed3 % 100) * 0.01) * 3 * distanceFactor; // BIGGER particles
+    const alphaFactor = Math.max(0.15, 1 - distRatio);
+
+    // Color selection
+    const colorIndex = (seed1 >> 8) & 3; // Fast modulo 4
+    const finalAlpha = intensity * DUST_COLORS.a[colorIndex] * alphaFactor;
+
+    ctx.fillStyle = `rgba(${DUST_COLORS.r[colorIndex]}, ${DUST_COLORS.g[colorIndex]}, ${DUST_COLORS.b[colorIndex]}, ${finalAlpha})`;
     ctx.beginPath();
     ctx.arc(grainX, grainY, grainSize, 0, Math.PI * 2);
     ctx.fill();
@@ -104,6 +130,7 @@ const drawStaticHalo = (
 const BackgroundElements = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [currentSection, setCurrentSection] = useState<'home' | 'me'>('home');
+  const [spherePos, setSpherePos] = useState({ x: 0, y: 0, radius: 100 });
   const animationActions = useAnimationActions();
   const device = useDevice();
 
@@ -431,6 +458,9 @@ const BackgroundElements = () => {
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
+    // DEBUG: Set to true to only show cosmic dust
+    const DEBUG_ONLY_COSMIC_DUST = true;
+
     const animate = (currentTime: number = 0) => {
       // Frame rate limiting for mobile performance
       if (currentTime - lastFrameTime < frameInterval) {
@@ -439,11 +469,15 @@ const BackgroundElements = () => {
       }
       lastFrameTime = currentTime;
 
-      ctx.clearRect(0, 0, canvas.width, canvas.height); // Use mobile-optimized rendering if on mobile device
-      if (isMobile) {
-        renderMobileBackgroundPattern(ctx, canvas, time);
-      } else {
-        renderBackgroundPattern(ctx, canvas, time);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Skip background pattern in debug mode
+      if (!DEBUG_ONLY_COSMIC_DUST) {
+        if (isMobile) {
+          renderMobileBackgroundPattern(ctx, canvas, time);
+        } else {
+          renderBackgroundPattern(ctx, canvas, time);
+        }
       }
 
       time += 0.008; // Slow, organic movement
@@ -456,6 +490,26 @@ const BackgroundElements = () => {
 
       // Update store for interactions
       animationActions.updateSpherePosition({ x: sphereX, y: sphereY });
+
+      // Update sphere position for Three.js dust component
+      setSpherePos({ x: sphereX, y: sphereY, radius: radius * 0.33 });
+
+      // DEBUG: Skip all other rendering when using Three.js dust
+      if (DEBUG_ONLY_COSMIC_DUST && USE_THREEJS_DUST) {
+        // Three.js handles rendering - just continue animation loop for position updates
+        animationFrame = requestAnimationFrame(animate);
+        return;
+      }
+
+      // DEBUG: Skip all other rendering, only show canvas cosmic dust
+      if (DEBUG_ONLY_COSMIC_DUST) {
+        // Just draw cosmic dust on plain background
+        const dustRadius = radius * 0.33; // 3x smaller
+        drawCosmicDust(ctx, sphereX, sphereY, dustRadius, 0.9, time * 0.5);
+        animationFrame = requestAnimationFrame(animate);
+        time += 0.001;
+        return;
+      }
 
       // Draw Saturn-like sphere with dotted atmospheric texture
       ctx.save();
@@ -1145,18 +1199,16 @@ const BackgroundElements = () => {
       ctx.fillStyle = `rgba(160, 120, 180, ${kraslovskisAlpha * 0.25})`;
       ctx.fill();
 
-      // Draw TV static halo around the main sphere (outer layer only)
-      const staticOuterRadius = radius * 1.4; // 40% larger than the main sphere
-      const staticInnerRadius = radius * 1.1; // 10% larger than the main sphere (creates ring)
-      const staticIntensity = 0.5; // Visible static
-      drawStaticHalo(
+      // Draw cosmic dust cloud around the main sphere
+      const dustRadius = radius * 1.2; // Base size for the dust cloud
+      const dustIntensity = 0.5;
+      drawCosmicDust(
         ctx,
         sphereX,
         sphereY,
-        staticOuterRadius,
-        staticIntensity,
-        time * 15,
-        staticInnerRadius
+        dustRadius,
+        dustIntensity,
+        time * 15
       );
 
       // Render sphere glow using appropriate helper function
@@ -1186,6 +1238,14 @@ const BackgroundElements = () => {
         className='fixed inset-0 w-full h-full pointer-events-none z-0'
         style={styles.canvas.background}
       />
+      {USE_THREEJS_DUST && (
+        <CosmicDustThree
+          centerX={spherePos.x}
+          centerY={spherePos.y}
+          radius={spherePos.radius}
+          intensity={0.9}
+        />
+      )}
     </>
   );
 };

@@ -1,12 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Static export for deployment to static hosting
-  output: 'export',
-  trailingSlash: true,
+  // Standalone output for Railway deployment (Node.js server)
+  output: 'standalone',
 
-  // Image optimization disabled for static export
+  // Image optimization
   images: {
-    unoptimized: true,
+    formats: ['image/avif', 'image/webp'],
   },
 
   // Security headers for production
@@ -53,4 +52,4 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig
+module.exports = nextConfig;

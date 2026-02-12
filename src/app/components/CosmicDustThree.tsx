@@ -6,30 +6,75 @@ import * as THREE from 'three';
 interface CosmicDustThreeProps {
   centerX: number;
   centerY: number;
-  radius: number;
-  intensity?: number;
 }
 
-// ============= CONFIGURABLE CONSTANTS =============
-const PARTICLE_COUNT = 8000;
-const SWIRL_SPEED = 0.08; // Main galaxy swirl speed
-const BASE_RADIUS = 200; // Size of the ball - extends beyond screen
+// ============= BALL CONFIGURATION TYPE =============
+interface BallConfig {
+  id: string;
+  color: { r: number; g: number; b: number }; // RGB 0-1
+  particleCount: number;
+  radius: number; // Size of the ball
+  orbitRadius: number; // Semi-major axis (average distance from parent/center)
+  orbitEccentricity: number; // 0 = circle, 0.5 = ellipse, closer to 1 = very elongated
+  orbitTilt: number; // Orbital plane tilt in radians (0 = flat, PI/2 = vertical)
+  orbitSpeed: number; // How fast it orbits
+  spinSpeed: number; // How fast it spins on its axis
+  swirlSpeed: number; // Internal particle swirl
+  chaoticRatio: number; // % of chaotic particles
+  chaoticSpeedMin: number;
+  chaoticSpeedMax: number;
+  parentId: string | null; // ID of parent ball (null = orbits center/user)
+}
 
-// Chaotic particles - these do random circular movements
-const CHAOTIC_RATIO = 0.2; // 10% of particles are chaotic
-const CHAOTIC_SPEED_MIN = 0.05; // Min chaotic orbit speed
-const CHAOTIC_SPEED_MAX = 0.3; // Max chaotic orbit speed
+// ============= BALL CONFIGURATIONS =============
+const BALLS: BallConfig[] = [
+  {
+    id: 'main-ball',
+    color: { r: 0.25, g: 0.27, b: 0.24 }, // Dark charcoal/olive - clearly visible
+    particleCount: 8000,
+    radius: 300,
+    orbitRadius: 300,
+    orbitEccentricity: 0.4, // Elliptical orbit (like planets)
+    orbitTilt: 1.4, // Nearly vertical - ball goes in front and behind the user
+    orbitSpeed: 0.3,
+    spinSpeed: 0.15,
+    swirlSpeed: 0.08,
+    chaoticRatio: 0.3,
+    chaoticSpeedMin: 0.05,
+    chaoticSpeedMax: 0.3,
+    parentId: null, // Orbits the user/center
+  },
+  {
+    id: 'child-ball',
+    color: { r: 0.6, g: 0.45, b: 0.3 }, // Warm caramel/tan - distinct from main ball
+    particleCount: 4000,
+    radius: 120, // Smaller
+    orbitRadius: 400, // Distance from main ball
+    orbitEccentricity: 0.3, // Less elliptical for clearer orbit
+    orbitTilt: 0.4, // Low tilt = mostly horizontal orbit, goes IN FRONT and BEHIND parent
+    orbitSpeed: 0.4, // Orbit speed
+    spinSpeed: 0.25,
+    swirlSpeed: 0.12,
+    chaoticRatio: 0.25,
+    chaoticSpeedMin: 0.05,
+    chaoticSpeedMax: 0.4,
+    parentId: 'main-ball', // Orbits the main ball
+  },
+];
 // ===================================================
 
-// Custom shader for non-circular particles
-const vertexShader = `
+// Generate vertex shader with dynamic color
+const createVertexShader = () => `
   attribute float size;
   attribute float shape;
+  attribute vec3 ballColor;
   varying float vShape;
   varying float vAlpha;
+  varying vec3 vColor;
 
   void main() {
     vShape = shape;
+    vColor = ballColor;
     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
 
     // Distance-based fade
@@ -44,6 +89,7 @@ const vertexShader = `
 const fragmentShader = `
   varying float vShape;
   varying float vAlpha;
+  varying vec3 vColor;
 
   void main() {
     vec2 uv = gl_PointCoord - vec2(0.5);
@@ -69,11 +115,32 @@ const fragmentShader = `
       alpha = 1.0 - smoothstep(0.15, 0.4, min(d1, d2));
     }
 
-    // Neon red for debug
-    vec3 color = vec3(1.0, 0.1, 0.05);
-    gl_FragColor = vec4(color, alpha * vAlpha);
+    gl_FragColor = vec4(vColor, alpha * vAlpha);
   }
 `;
+
+// Ball data structure for animation
+interface BallData {
+  config: BallConfig;
+  // Spherical coordinates for each particle (for Earth-like rotation)
+  theta: Float32Array; // Longitude angle (0 to 2PI) - rotated by spin
+  phi: Float32Array; // Latitude angle (0 to PI) - stays fixed
+  distances: Float32Array; // Distance from ball center
+  speeds: Float32Array;
+  isChaotic: Uint8Array;
+  chaoticOrbitRadius: Float32Array;
+  chaoticOrbitSpeed: Float32Array;
+  chaoticOrbitAngle: Float32Array;
+  chaoticCenterX: Float32Array;
+  chaoticCenterY: Float32Array;
+  startIndex: number; // Start index in the combined position array
+  // Current ball center position (updated each frame)
+  centerX: number;
+  centerY: number;
+  centerZ: number; // Depth - positive = in front, negative = behind
+  // Base sizes for depth scaling
+  baseSizes: Float32Array;
+}
 
 const CosmicDustThree = ({ centerX, centerY }: CosmicDustThreeProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -82,21 +149,8 @@ const CosmicDustThree = ({ centerX, centerY }: CosmicDustThreeProps) => {
   const cameraRef = useRef<THREE.OrthographicCamera | null>(null);
   const particlesRef = useRef<THREE.Points | null>(null);
   const frameIdRef = useRef<number>(0);
+  const ballDataRef = useRef<Map<string, BallData>>(new Map());
 
-  // Store particle data for animation
-  const dataRef = useRef<{
-    angles: Float32Array;
-    distances: Float32Array;
-    speeds: Float32Array;
-    isChaotic: Uint8Array; // 1 = chaotic, 0 = normal
-    chaoticOrbitRadius: Float32Array; // Orbit radius for chaotic particles
-    chaoticOrbitSpeed: Float32Array; // Orbit speed for chaotic particles
-    chaoticOrbitAngle: Float32Array; // Current orbit angle for chaotic particles
-    chaoticCenterX: Float32Array; // Center X of chaotic orbit
-    chaoticCenterY: Float32Array; // Center Y of chaotic orbit
-  } | null>(null);
-
-  // Initialize Three.js scene once
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -108,7 +162,7 @@ const CosmicDustThree = ({ centerX, centerY }: CosmicDustThreeProps) => {
     const scene = new THREE.Scene();
     sceneRef.current = scene;
 
-    // Camera (orthographic for 2D-like view)
+    // Camera
     const camera = new THREE.OrthographicCamera(
       -width / 2, width / 2,
       height / 2, -height / 2,
@@ -125,99 +179,116 @@ const CosmicDustThree = ({ centerX, centerY }: CosmicDustThreeProps) => {
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // Create particles
+    // Calculate total particle count
+    const totalParticles = BALLS.reduce((sum, ball) => sum + ball.particleCount, 0);
+
+    // Create combined geometry for all balls
     const geometry = new THREE.BufferGeometry();
-    const positions = new Float32Array(PARTICLE_COUNT * 3);
-    const sizes = new Float32Array(PARTICLE_COUNT);
-    const shapes = new Float32Array(PARTICLE_COUNT);
+    const positions = new Float32Array(totalParticles * 3);
+    const sizes = new Float32Array(totalParticles);
+    const shapes = new Float32Array(totalParticles);
+    const colors = new Float32Array(totalParticles * 3);
 
-    // Animation data
-    const angles = new Float32Array(PARTICLE_COUNT);
-    const distances = new Float32Array(PARTICLE_COUNT);
-    const speeds = new Float32Array(PARTICLE_COUNT);
-    const depths = new Float32Array(PARTICLE_COUNT);
+    // Initialize ball data and particles
+    let currentIndex = 0;
+    const ballDataMap = new Map<string, BallData>();
 
-    // Chaotic particle data
-    const isChaotic = new Uint8Array(PARTICLE_COUNT);
-    const chaoticOrbitRadius = new Float32Array(PARTICLE_COUNT);
-    const chaoticOrbitSpeed = new Float32Array(PARTICLE_COUNT);
-    const chaoticOrbitAngle = new Float32Array(PARTICLE_COUNT);
-    const chaoticCenterX = new Float32Array(PARTICLE_COUNT);
-    const chaoticCenterY = new Float32Array(PARTICLE_COUNT);
+    for (const config of BALLS) {
+      const count = config.particleCount;
+      const startIndex = currentIndex;
 
-    for (let i = 0; i < PARTICLE_COUNT; i++) {
-      // Initial angle
-      angles[i] = Math.random() * Math.PI * 2;
+      // Create ball data
+      const ballData: BallData = {
+        config,
+        theta: new Float32Array(count), // Longitude (0 to 2PI) - rotated by spin
+        phi: new Float32Array(count), // Latitude (0 to PI) - fixed
+        distances: new Float32Array(count),
+        speeds: new Float32Array(count),
+        isChaotic: new Uint8Array(count),
+        chaoticOrbitRadius: new Float32Array(count),
+        chaoticOrbitSpeed: new Float32Array(count),
+        chaoticOrbitAngle: new Float32Array(count),
+        chaoticCenterX: new Float32Array(count),
+        chaoticCenterY: new Float32Array(count),
+        startIndex,
+        centerX: 0,
+        centerY: 0,
+        centerZ: 0, // Depth position
+        baseSizes: new Float32Array(count), // Store base sizes for depth scaling
+      };
 
-      // BALL shape - particles distributed from center outward (no empty center)
-      const r = Math.random();
-      // Use sqrt for more uniform 2D distribution (area increases with radius)
-      const normalizedDist = Math.sqrt(r);
-      distances[i] = normalizedDist * BASE_RADIUS;
+      // Initialize particles for this ball using spherical coordinates
+      for (let i = 0; i < count; i++) {
+        const globalIndex = startIndex + i;
 
-      // Random depth for parallax
-      depths[i] = 0.3 + Math.random() * 0.7;
+        // Spherical coordinates for Earth-like rotation
+        ballData.theta[i] = Math.random() * Math.PI * 2; // Longitude (0 to 2PI)
+        ballData.phi[i] = Math.acos(1 - 2 * Math.random()); // Latitude (0 to PI) - uniform sphere distribution
 
-      // Determine if this particle is chaotic
-      isChaotic[i] = Math.random() < CHAOTIC_RATIO ? 1 : 0;
+        // Distance from center (ball shape distribution - filled sphere)
+        const r = Math.random();
+        const normalizedDist = Math.cbrt(r); // Cube root for uniform volume distribution
+        ballData.distances[i] = normalizedDist * config.radius;
 
-      if (isChaotic[i]) {
-        // Chaotic particle - random circular orbit
-        chaoticOrbitRadius[i] = 20 + Math.random() * 80; // Small orbit radius
-        chaoticOrbitSpeed[i] = CHAOTIC_SPEED_MIN + Math.random() * (CHAOTIC_SPEED_MAX - CHAOTIC_SPEED_MIN);
-        // Random direction (positive or negative)
-        if (Math.random() < 0.5) chaoticOrbitSpeed[i] *= -1;
-        chaoticOrbitAngle[i] = Math.random() * Math.PI * 2;
-        // Center of chaotic orbit is the particle's base position
-        chaoticCenterX[i] = Math.cos(angles[i]) * distances[i];
-        chaoticCenterY[i] = Math.sin(angles[i]) * distances[i];
-        // Speed for chaotic is independent
-        speeds[i] = 0; // Chaotic particles don't do main swirl
-      } else {
-        // Normal particle - main swirl
-        speeds[i] = (1.5 - depths[i]) * (0.7 + Math.random() * 0.6);
-        chaoticOrbitRadius[i] = 0;
-        chaoticOrbitSpeed[i] = 0;
-        chaoticOrbitAngle[i] = 0;
-        chaoticCenterX[i] = 0;
-        chaoticCenterY[i] = 0;
+        // Chaotic particles
+        ballData.isChaotic[i] = Math.random() < config.chaoticRatio ? 1 : 0;
+
+        if (ballData.isChaotic[i]) {
+          ballData.chaoticOrbitRadius[i] = 20 + Math.random() * 80;
+          ballData.chaoticOrbitSpeed[i] =
+            config.chaoticSpeedMin + Math.random() * (config.chaoticSpeedMax - config.chaoticSpeedMin);
+          if (Math.random() < 0.5) ballData.chaoticOrbitSpeed[i] *= -1;
+          ballData.chaoticOrbitAngle[i] = Math.random() * Math.PI * 2;
+          // Calculate initial position for chaotic center
+          const sinPhi = Math.sin(ballData.phi[i]);
+          const cosPhi = Math.cos(ballData.phi[i]);
+          ballData.chaoticCenterX[i] = Math.cos(ballData.theta[i]) * sinPhi * ballData.distances[i];
+          ballData.chaoticCenterY[i] = cosPhi * ballData.distances[i];
+          ballData.speeds[i] = 0;
+        } else {
+          ballData.speeds[i] = 0.7 + Math.random() * 0.6;
+        }
+
+        // Calculate initial 3D position from spherical coordinates
+        const sinPhi = Math.sin(ballData.phi[i]);
+        const cosPhi = Math.cos(ballData.phi[i]);
+        const x = Math.cos(ballData.theta[i]) * sinPhi * ballData.distances[i];
+        const y = cosPhi * ballData.distances[i]; // Y is the vertical axis (poles)
+        const z = Math.sin(ballData.theta[i]) * sinPhi * ballData.distances[i];
+
+        positions[globalIndex * 3] = x;
+        positions[globalIndex * 3 + 1] = y;
+        positions[globalIndex * 3 + 2] = z;
+
+        // Size - vary by distance from center (inner particles slightly smaller)
+        const distanceFactor = normalizedDist; // 0 to 1
+        const baseSize = (6 + Math.random() * 10) * (0.8 + distanceFactor * 0.4);
+        sizes[globalIndex] = baseSize;
+        ballData.baseSizes[i] = baseSize;
+
+        // Shape
+        shapes[globalIndex] = Math.random();
+
+        // Color
+        colors[globalIndex * 3] = config.color.r;
+        colors[globalIndex * 3 + 1] = config.color.g;
+        colors[globalIndex * 3 + 2] = config.color.b;
       }
 
-      // Initial position
-      const x = Math.cos(angles[i]) * distances[i];
-      const y = Math.sin(angles[i]) * distances[i];
-      positions[i * 3] = x;
-      positions[i * 3 + 1] = y;
-      positions[i * 3 + 2] = depths[i] * 100;
-
-      // Size varies by depth
-      const depthSize = (1.5 - depths[i]) * 2;
-      sizes[i] = (3 + Math.random() * 6) * depthSize;
-
-      // Shape type
-      shapes[i] = Math.random();
+      ballDataMap.set(config.id, ballData);
+      currentIndex += count;
     }
+
+    ballDataRef.current = ballDataMap;
 
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
     geometry.setAttribute('shape', new THREE.BufferAttribute(shapes, 1));
-
-    // Store animation data
-    dataRef.current = {
-      angles,
-      distances,
-      speeds,
-      isChaotic,
-      chaoticOrbitRadius,
-      chaoticOrbitSpeed,
-      chaoticOrbitAngle,
-      chaoticCenterX,
-      chaoticCenterY,
-    };
+    geometry.setAttribute('ballColor', new THREE.BufferAttribute(colors, 3));
 
     // Material
     const material = new THREE.ShaderMaterial({
-      vertexShader,
+      vertexShader: createVertexShader(),
       fragmentShader,
       transparent: true,
       depthWrite: false,
@@ -232,38 +303,121 @@ const CosmicDustThree = ({ centerX, centerY }: CosmicDustThreeProps) => {
     // Animation loop
     let time = 0;
     const animate = () => {
-      time += 0.016; // ~60fps
+      time += 0.016;
 
-      if (particlesRef.current && dataRef.current) {
+      if (particlesRef.current && ballDataRef.current.size > 0) {
         const posArray = particlesRef.current.geometry.attributes.position.array as Float32Array;
-        const data = dataRef.current;
 
-        for (let i = 0; i < PARTICLE_COUNT; i++) {
-          if (data.isChaotic[i]) {
-            // Chaotic particle - circular orbit around its center point
-            data.chaoticOrbitAngle[i] += data.chaoticOrbitSpeed[i] * 0.016;
+        // First pass: calculate ball centers for ROOT balls (no parent)
+        for (const [, ballData] of ballDataRef.current) {
+          const config = ballData.config;
+          if (config.parentId === null) {
+            // Root ball - orbits around center (0, 0) in 3D ellipse
+            const orbitAngle = time * config.orbitSpeed;
+            // Elliptical orbit: semi-major axis (a) and semi-minor axis (b)
+            const a = config.orbitRadius;
+            const b = a * Math.sqrt(1 - config.orbitEccentricity * config.orbitEccentricity);
 
-            const orbitX = Math.cos(data.chaoticOrbitAngle[i]) * data.chaoticOrbitRadius[i];
-            const orbitY = Math.sin(data.chaoticOrbitAngle[i]) * data.chaoticOrbitRadius[i];
+            // Calculate flat orbit position first
+            const flatX = Math.cos(orbitAngle) * a;
+            const flatY = Math.sin(orbitAngle) * b;
 
-            posArray[i * 3] = data.chaoticCenterX[i] + orbitX;
-            posArray[i * 3 + 1] = data.chaoticCenterY[i] + orbitY;
-          } else {
-            // Normal particle - main swirl
-            const newAngle = data.angles[i] + time * SWIRL_SPEED * data.speeds[i];
+            // Apply orbital tilt - rotate around X axis
+            // This makes the orbit go "in front" and "behind"
+            const tiltCos = Math.cos(config.orbitTilt);
+            const tiltSin = Math.sin(config.orbitTilt);
+            ballData.centerX = flatX;
+            ballData.centerY = flatY * tiltCos;
+            ballData.centerZ = flatY * tiltSin; // Z = depth (positive = front)
+          }
+        }
 
-            // Slight wobble
-            const wobble = Math.sin(time * 0.3 + i * 0.1) * data.distances[i] * 0.03;
+        // Second pass: calculate ball centers for CHILD balls (have parent)
+        for (const [, ballData] of ballDataRef.current) {
+          const config = ballData.config;
+          if (config.parentId !== null) {
+            const parentData = ballDataRef.current.get(config.parentId);
+            if (parentData) {
+              const orbitAngle = time * config.orbitSpeed;
+              // Elliptical orbit around parent in 3D
+              const a = config.orbitRadius;
+              const b = a * Math.sqrt(1 - config.orbitEccentricity * config.orbitEccentricity);
 
-            const x = Math.cos(newAngle) * (data.distances[i] + wobble);
-            const y = Math.sin(newAngle) * (data.distances[i] + wobble);
+              // Calculate orbit in XZ plane (horizontal) - this makes the child go AROUND the parent
+              // X = left/right, Z = front/back (depth)
+              const orbitX = Math.cos(orbitAngle) * a;
+              const orbitZ = Math.sin(orbitAngle) * b;
 
-            posArray[i * 3] = x;
-            posArray[i * 3 + 1] = y;
+              // Apply orbital tilt - tilts the horizontal orbit to add some vertical movement
+              const tiltCos = Math.cos(config.orbitTilt);
+              const tiltSin = Math.sin(config.orbitTilt);
+              const localX = orbitX;
+              const localY = orbitZ * tiltSin;  // Vertical offset from tilted orbit
+              const localZ = orbitZ * tiltCos;  // Depth (front/back)
+
+              // Add parent position
+              ballData.centerX = parentData.centerX + localX;
+              ballData.centerY = parentData.centerY + localY;
+              ballData.centerZ = parentData.centerZ + localZ;
+            }
+          }
+        }
+
+        // Get size array for depth-based scaling
+        const sizeArray = particlesRef.current.geometry.attributes.size.array as Float32Array;
+
+        // Third pass: update all particles with depth effects
+        for (const [, ballData] of ballDataRef.current) {
+          const config = ballData.config;
+          const spinAngle = time * config.spinSpeed; // Used for Earth-like rotation
+
+          // Calculate depth scale factor for this ball
+          // For child balls, Z can be parent's Z + local Z, so use a larger range
+          const parentZ = config.parentId
+            ? (ballDataRef.current.get(config.parentId)?.config.orbitRadius || 0)
+            : 0;
+          const maxZ = config.orbitRadius + parentZ + 100; // Account for combined depth
+          const rawDepthFactor = (ballData.centerZ + maxZ) / (maxZ * 2);
+          const depthFactor = Math.max(0, Math.min(1, rawDepthFactor)); // Clamp to 0-1
+          // Dramatic scaling: almost invisible when behind (0.15x), normal when in front (1.2x)
+          const sizeScale = 0.15 + depthFactor * 1.05;
+
+          for (let i = 0; i < config.particleCount; i++) {
+            const globalIndex = ballData.startIndex + i;
+            let localX: number, localY: number;
+
+            if (ballData.isChaotic[i]) {
+              // Chaotic particle - orbits around its center point
+              ballData.chaoticOrbitAngle[i] += ballData.chaoticOrbitSpeed[i] * 0.016;
+              const orbitX = Math.cos(ballData.chaoticOrbitAngle[i]) * ballData.chaoticOrbitRadius[i];
+              const orbitY = Math.sin(ballData.chaoticOrbitAngle[i]) * ballData.chaoticOrbitRadius[i];
+              localX = ballData.chaoticCenterX[i] + orbitX;
+              localY = ballData.chaoticCenterY[i] + orbitY;
+            } else {
+              // Normal particle - Earth-like rotation around Y axis
+              // Add spin to theta (longitude) - this rotates around the Y axis like Earth
+              const currentTheta = ballData.theta[i] + spinAngle + time * config.swirlSpeed * ballData.speeds[i];
+              const phi = ballData.phi[i];
+              const dist = ballData.distances[i];
+
+              // Convert spherical to Cartesian (Y is up/down axis)
+              const sinPhi = Math.sin(phi);
+              const cosPhi = Math.cos(phi);
+              localX = Math.cos(currentTheta) * sinPhi * dist;
+              localY = cosPhi * dist; // Y stays same (poles don't move much)
+            }
+
+            // Add ball center offset
+            posArray[globalIndex * 3] = localX + ballData.centerX;
+            posArray[globalIndex * 3 + 1] = localY + ballData.centerY;
+
+            // Apply depth-based size scaling
+            sizeArray[globalIndex] = ballData.baseSizes[i] * sizeScale;
           }
         }
 
         particlesRef.current.geometry.attributes.position.needsUpdate = true;
+        particlesRef.current.geometry.attributes.size.needsUpdate = true;
       }
 
       if (rendererRef.current && sceneRef.current && cameraRef.current) {
@@ -303,7 +457,7 @@ const CosmicDustThree = ({ centerX, centerY }: CosmicDustThreeProps) => {
       geometry.dispose();
       material.dispose();
     };
-  }, []); // Empty deps - only run once
+  }, []);
 
   // Update position when center changes
   useEffect(() => {

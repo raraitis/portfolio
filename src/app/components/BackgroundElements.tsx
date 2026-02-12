@@ -34,98 +34,10 @@ const CosmicDustThree = dynamic(() => import('./CosmicDustThree'), {
   ssr: false,
 });
 
-// DEBUG: Set to true to use Three.js cosmic dust only
+// DEBUG: Set to true to show only Three.js cosmic dust (skip other elements)
+const DEBUG_ONLY_COSMIC_DUST = true;
+// Use Three.js for cosmic dust (instead of Canvas 2D)
 const USE_THREEJS_DUST = true;
-
-// Cosmic Dust Cloud - scattered, organic, oval-ish with escapees
-// Pre-computed color values for performance - NEON RED FOR DEBUGGING
-const DUST_COLORS = {
-  r: [255, 255, 200, 255],
-  g: [0, 50, 0, 100],
-  b: [0, 50, 0, 100],
-  a: [1, 0.8, 0.6, 0.5],
-};
-
-const drawCosmicDust = (
-  ctx: CanvasRenderingContext2D,
-  centerX: number,
-  centerY: number,
-  radius: number,
-  intensity: number,
-  seed: number
-) => {
-  // Oval shape - wider than tall for cosmic nebula feel
-  const ovalStretchX = 1.4;
-  const ovalStretchY = 0.75;
-
-  // More particles, cloud size controlled by radius parameter
-  const numParticles = 500;
-
-  // Pre-compute seed-based time wobble (only changes with seed/time)
-  const seedWobble = seed * 0.008;
-
-  for (let i = 0; i < numParticles; i++) {
-    // Fast pseudo-random using bit operations
-    const seed1 = ((seed * 1337 + i * 7919) | 0) % 65536;
-    const seed3 = ((seed * 5923 + i * 3163) | 0) % 65536;
-
-    // Early skip check - avoid calculations for skipped particles
-    if ((seed3 & 255) > 140) continue; // ~45% skip rate using bitwise
-
-    const seed2 = ((seed * 2341 + i * 4801) | 0) % 65536;
-    const seed4 = ((seed * 4127 + i * 9001) | 0) % 65536;
-
-    // Random angle (0 to 2π)
-    const angleNorm = (seed1 % 1000) * 0.001;
-    const angle = angleNorm * Math.PI * 2;
-
-    // Distance distribution
-    const distNorm = (seed2 % 1000) * 0.001;
-    let distance;
-    if (distNorm < 0.5) {
-      distance = radius * (0.2 + distNorm * 1.0);
-    } else if (distNorm < 0.8) {
-      distance = radius * (0.7 + (distNorm - 0.5) * 2.7);
-    } else {
-      distance = radius * (1.5 + (distNorm - 0.8) * 7.5);
-    }
-
-    // Simplified wobble - fewer trig calls
-    const wobble = Math.sin(angle * 2.5 + seedWobble) * radius * 0.25;
-    distance += wobble;
-
-    // Pre-compute cos/sin once per particle
-    const cosAngle = Math.cos(angle);
-    const sinAngle = Math.sin(angle);
-
-    // Apply oval stretch
-    const baseX = cosAngle * distance * ovalStretchX;
-    const baseY = sinAngle * distance * ovalStretchY;
-
-    // Chaos offset using seed directly (no trig)
-    const chaosAmount = distance > radius ? 40 : 15;
-    const chaosX = ((seed4 % 1000) * 0.001 - 0.5) * chaosAmount;
-    const chaosY = (((seed4 * 7) % 1000) * 0.001 - 0.5) * chaosAmount;
-
-    const grainX = centerX + baseX + chaosX;
-    const grainY = centerY + baseY + chaosY;
-
-    // Size and alpha based on distance
-    const distRatio = distance / (radius * 3);
-    const distanceFactor = Math.max(0.3, 1 - distRatio);
-    const grainSize = 1.5 + ((seed3 % 100) * 0.01) * 3 * distanceFactor; // BIGGER particles
-    const alphaFactor = Math.max(0.15, 1 - distRatio);
-
-    // Color selection
-    const colorIndex = (seed1 >> 8) & 3; // Fast modulo 4
-    const finalAlpha = intensity * DUST_COLORS.a[colorIndex] * alphaFactor;
-
-    ctx.fillStyle = `rgba(${DUST_COLORS.r[colorIndex]}, ${DUST_COLORS.g[colorIndex]}, ${DUST_COLORS.b[colorIndex]}, ${finalAlpha})`;
-    ctx.beginPath();
-    ctx.arc(grainX, grainY, grainSize, 0, Math.PI * 2);
-    ctx.fill();
-  }
-};
 
 const BackgroundElements = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -501,15 +413,8 @@ const BackgroundElements = () => {
         return;
       }
 
-      // DEBUG: Skip all other rendering, only show canvas cosmic dust
-      if (DEBUG_ONLY_COSMIC_DUST) {
-        // Just draw cosmic dust on plain background
-        const dustRadius = radius * 0.33; // 3x smaller
-        drawCosmicDust(ctx, sphereX, sphereY, dustRadius, 0.9, time * 0.5);
-        animationFrame = requestAnimationFrame(animate);
-        time += 0.001;
-        return;
-      }
+      // DEBUG: Skip all other rendering when using Canvas cosmic dust (now disabled)
+      // Three.js handles cosmic dust rendering via CosmicDustThree component
 
       // Draw Saturn-like sphere with dotted atmospheric texture
       ctx.save();
@@ -1199,17 +1104,7 @@ const BackgroundElements = () => {
       ctx.fillStyle = `rgba(160, 120, 180, ${kraslovskisAlpha * 0.25})`;
       ctx.fill();
 
-      // Draw cosmic dust cloud around the main sphere
-      const dustRadius = radius * 1.2; // Base size for the dust cloud
-      const dustIntensity = 0.5;
-      drawCosmicDust(
-        ctx,
-        sphereX,
-        sphereY,
-        dustRadius,
-        dustIntensity,
-        time * 15
-      );
+      // Cosmic dust is now rendered via Three.js (CosmicDustThree component)
 
       // Render sphere glow using appropriate helper function
       if (isMobile) {
@@ -1242,8 +1137,6 @@ const BackgroundElements = () => {
         <CosmicDustThree
           centerX={spherePos.x}
           centerY={spherePos.y}
-          radius={spherePos.radius}
-          intensity={0.9}
         />
       )}
     </>

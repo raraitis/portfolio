@@ -894,13 +894,14 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
 
         // Update click target position (direct DOM — no React re-render)
         if (clickTargetRef.current && !isFlying) {
-          const hitSize = Math.max(screenSize, 44);
+          // Generous hit area — 3x visual size, minimum 80px (mobile-friendly)
+          const hitSize = Math.max(screenSize * 3, 80);
           clickTargetRef.current.style.left = `${screenX - hitSize / 2}px`;
           clickTargetRef.current.style.top = `${screenY - hitSize / 2}px`;
           clickTargetRef.current.style.width = `${hitSize}px`;
           clickTargetRef.current.style.height = `${hitSize}px`;
-          // Clickable when planet is in front half of its orbit within the ball
-          const isVisible = depthFactor > 0.4;
+          // Clickable for most of the orbit (only hide when deeply behind)
+          const isVisible = depthFactor > 0.15;
           clickTargetRef.current.style.pointerEvents = isVisible ? 'auto' : 'none';
           clickTargetRef.current.style.cursor = isVisible ? 'pointer' : 'default';
         }

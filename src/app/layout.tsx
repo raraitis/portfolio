@@ -17,12 +17,16 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: 'cover',
+  themeColor: '#f5f1e8',
 };
 
 export const metadata: Metadata = {
   title: 'Raitis Kraslovskis - Portfolio',
   description:
     'you think it. i make it. you break it. i solve it. universe approves. we happy. thats a deal.',
+  appleWebApp: {
+    statusBarStyle: 'black-translucent',
+  },
 };
 
 export default function RootLayout({

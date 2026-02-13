@@ -28,6 +28,7 @@ body {
 
 .animate-spin-slow {
   animation: spin-slow linear infinite;
+  will-change: transform;
 }
 
 /* Responsive frame border - tighter on mobile to give content more room */

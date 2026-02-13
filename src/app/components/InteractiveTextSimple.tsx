@@ -1,10 +1,9 @@
 'use client'
 
-import { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { animated, useSpringValue, useSpring } from '@react-spring/web';
 import { useDrag } from '@use-gesture/react';
 import {
-  useAnimationState,
   useAnimationActions,
 } from '@/contexts/AnimationContext';
 import { useDevice } from '../hooks/useDevice';
@@ -52,8 +51,7 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
       : { tension: 150, friction: 20 },
   };
 
-  // Animation context hooks
-  const animationState = useAnimationState();
+  // Animation context — only use dispatch (actions), NOT state subscription
   const animationActions = useAnimationActions();
 
   const wordX = useSpringValue(initialX); // Start directly at final position
@@ -204,7 +202,7 @@ interface ScatteredLetterProps {
   textStyles: typeof nameText;
 }
 
-const ScatteredLetter = ({
+const ScatteredLetter = React.memo(({
   letter,
   x,
   y,
@@ -268,7 +266,8 @@ const ScatteredLetter = ({
       {letter}
     </animated.div>
   );
-};
+});
+ScatteredLetter.displayName = 'ScatteredLetter';
 
 export default function InteractiveText() {
   const containerRef = useRef<HTMLDivElement>(null);

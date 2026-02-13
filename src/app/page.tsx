@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import InteractiveText from './components/InteractiveTextSimple';
 import PortfolioSection from './components/PortfolioSection';
@@ -97,18 +97,17 @@ const MeSection = () => {
 export default function HomePage() {
   const [currentSection, setCurrentSection] = useState<'home' | 'me' | 'portfolio'>('home');
 
-  // Global state for navigation
-  if (typeof window !== 'undefined') {
-    (window as any).navigateToSection = (section: 'home' | 'me' | 'portfolio') => {
-      setCurrentSection(section);
-      if ((window as any).setBackgroundSection) {
-        (window as any).setBackgroundSection(section);
-      }
-      if ((window as any).updateNavSection) {
-        (window as any).updateNavSection(section);
-      }
-    };
-  }
+  // Global navigation callback — useEffect prevents running during render
+  const navigateToSection = useCallback((section: 'home' | 'me' | 'portfolio') => {
+    setCurrentSection(section);
+    (window as any).setBackgroundSection?.(section);
+    (window as any).updateNavSection?.(section);
+  }, []);
+
+  useEffect(() => {
+    (window as any).navigateToSection = navigateToSection;
+    return () => { delete (window as any).navigateToSection; };
+  }, [navigateToSection]);
 
   const renderSection = () => {
     switch (currentSection) {

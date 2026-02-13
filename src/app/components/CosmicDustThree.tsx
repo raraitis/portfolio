@@ -65,6 +65,17 @@ const BALLS: BallConfig[] = [
   },
 ];
 
+// Precomputed per-ball orbit constants (avoids sqrt + trig every frame)
+const BALL_ORBIT = new Map(BALLS.map(c => [c.id, {
+  orbitB: c.orbitRadius * Math.sqrt(1 - c.orbitEccentricity * c.orbitEccentricity),
+  tiltCos: Math.cos(c.orbitTilt),
+  tiltSin: Math.sin(c.orbitTilt),
+}]));
+
+// Planet tilt is constant (0.35 rad) — precompute cos/sin once
+const PLANET_TILT_COS = Math.cos(0.35);
+const PLANET_TILT_SIN = Math.sin(0.35);
+
 // ============= STRIPED PLANET SHADERS =============
 const planetVertexShader = `
   varying vec3 vNormal;
@@ -109,20 +120,17 @@ const planetFragmentShader = `
 // passes radial angle to fragment shader for streak direction
 const particleVertexShader = `
   attribute float size;
-  attribute float shape;
   attribute vec3 ballColor;
 
   uniform float uWarpProgress;
   uniform vec2 uWarpCenter;
 
-  varying float vShape;
   varying float vAlpha;
   varying vec3 vColor;
   varying float vWarp;
   varying float vRadialAngle;
 
   void main() {
-    vShape = shape;
     vColor = ballColor;
 
     vec3 pos = position;
@@ -168,7 +176,6 @@ const particleVertexShader = `
 // Fragment shader: rotates and stretches UVs to create radial streaks,
 // brightens particles toward warm white during warp
 const particleFragmentShader = `
-  varying float vShape;
   varying float vAlpha;
   varying vec3 vColor;
   varying float vWarp;
@@ -204,11 +211,7 @@ const particleFragmentShader = `
   }
 `;
 
-// ============= MATH HELPERS (mirror GLSL) =============
-function smoothstep(edge0: number, edge1: number, x: number) {
-  const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
-  return t * t * (3 - 2 * t);
-}
+// ============= MATH HELPERS =============
 function fract(x: number) { return x - Math.floor(x); }
 
 // ============= RUNTIME DATA TYPES =============
@@ -229,7 +232,6 @@ interface BallData {
   centerY: number;
   centerZ: number;
   baseSizes: Float32Array;
-  stripeValues: Float32Array;
   surfaceOffset: Float32Array; // per-particle random offset for fuzzy sphere edges
   targetPhi: Float32Array; // nearest stripe band center phi — particles migrate here
   assemblyDelay: Float32Array; // per-particle random delay for staggered assembly
@@ -344,9 +346,10 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
     cameraRef.current = camera;
 
     // Renderer
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    const isMobile = width < 768;
+    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: !isMobile });
     renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(isMobile ? 1 : Math.min(window.devicePixelRatio, 2));
     renderer.setClearColor(0x000000, 0);
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
@@ -358,7 +361,6 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
     const geometry = new THREE.BufferGeometry();
     const positions = new Float32Array(totalParticles * 3);
     const sizes = new Float32Array(totalParticles);
-    const shapes = new Float32Array(totalParticles);
     const colors = new Float32Array(totalParticles * 3);
 
     // Initialize ball data and particles
@@ -386,7 +388,6 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
         centerY: 0,
         centerZ: 0,
         baseSizes: new Float32Array(count),
-        stripeValues: new Float32Array(count),
         surfaceOffset: new Float32Array(count),
         targetPhi: new Float32Array(count),
         assemblyDelay: new Float32Array(count),
@@ -435,8 +436,6 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
         sizes[globalIndex] = baseSize;
         ballData.baseSizes[i] = baseSize;
 
-        shapes[globalIndex] = Math.random();
-
         colors[globalIndex * 3] = config.color.r;
         colors[globalIndex * 3 + 1] = config.color.g;
         colors[globalIndex * 3 + 2] = config.color.b;
@@ -447,7 +446,6 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
       for (let i = 0; i < count; i++) {
         const uvY = ballData.phi[i] / Math.PI;
         const y = uvY * stripeCount;
-        ballData.stripeValues[i] = smoothstep(0.28, 0.32, fract(y)) - smoothstep(0.58, 0.62, fract(y));
 
         // Find nearest stripe band center: centers are at (n + 0.45) / stripeCount in UV space
         const bandIndex = Math.floor(y);
@@ -491,7 +489,6 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
 
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
-    geometry.setAttribute('shape', new THREE.BufferAttribute(shapes, 1));
     geometry.setAttribute('ballColor', new THREE.BufferAttribute(colors, 3));
 
     // Material with warp uniforms — GSAP animates uWarpProgress directly
@@ -536,9 +533,34 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
     planetMaterialRef.current = planetMaterial;
     scene.add(planetMesh);
 
+    // ============= ADAPTIVE QUALITY =============
+    let drawRange = totalParticles;
+    const minDrawRange = Math.floor(totalParticles * 0.5); // never drop below 50%
+    let fpsAccum = 0;
+    let fpsFrames = 0;
+    let lastFrameMs = performance.now();
+
     // ============= ANIMATION LOOP =============
     let time = 0;
     const animate = () => {
+      // FPS tracking — adjust draw range every 30 frames
+      const nowMs = performance.now();
+      fpsAccum += nowMs - lastFrameMs;
+      lastFrameMs = nowMs;
+      fpsFrames++;
+      if (fpsFrames >= 30) {
+        const avgFps = 1000 / (fpsAccum / fpsFrames);
+        if (avgFps < 30 && drawRange > minDrawRange) {
+          drawRange = Math.max(minDrawRange, Math.floor(drawRange * 0.85));
+          geometry.setDrawRange(0, drawRange);
+        } else if (avgFps > 50 && drawRange < totalParticles) {
+          drawRange = Math.min(totalParticles, Math.floor(drawRange * 1.1));
+          geometry.setDrawRange(0, drawRange);
+        }
+        fpsAccum = 0;
+        fpsFrames = 0;
+      }
+
       time += 0.016;
       animTimeRef.current = time;
       const isFlying = flyingRef.current;
@@ -568,17 +590,14 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
           const config = ballData.config;
           if (config.parentId === null) {
             const orbitAngle = orbitTime * config.orbitSpeed + config.orbitPhaseOffset;
-            const a = config.orbitRadius;
-            const b = a * Math.sqrt(1 - config.orbitEccentricity * config.orbitEccentricity);
+            const oc = BALL_ORBIT.get(config.id)!;
 
-            const flatX = Math.cos(orbitAngle) * a;
-            const flatY = Math.sin(orbitAngle) * b;
+            const flatX = Math.cos(orbitAngle) * config.orbitRadius;
+            const flatY = Math.sin(orbitAngle) * oc.orbitB;
 
-            const tiltCos = Math.cos(config.orbitTilt);
-            const tiltSin = Math.sin(config.orbitTilt);
             const homeX = flatX;
-            const homeY = flatY * tiltCos;
-            const homeZ = flatY * tiltSin;
+            const homeY = flatY * oc.tiltCos;
+            const homeZ = flatY * oc.tiltSin;
 
             if (blend > 0.001) {
               // Portfolio: big ball hovering on the left with very gentle orbit
@@ -602,17 +621,14 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
             const parentData = ballDataRef.current.get(config.parentId);
             if (parentData) {
               const orbitAngle = orbitTime * config.orbitSpeed + config.orbitPhaseOffset;
-              const a = config.orbitRadius;
-              const b = a * Math.sqrt(1 - config.orbitEccentricity * config.orbitEccentricity);
+              const oc = BALL_ORBIT.get(config.id)!;
 
-              const orbitX = Math.cos(orbitAngle) * a;
-              const orbitZ = Math.sin(orbitAngle) * b;
+              const orbitX = Math.cos(orbitAngle) * config.orbitRadius;
+              const orbitZ = Math.sin(orbitAngle) * oc.orbitB;
 
-              const tiltCos = Math.cos(config.orbitTilt);
-              const tiltSin = Math.sin(config.orbitTilt);
               const localX = orbitX;
-              const localY = orbitZ * tiltSin;
-              const localZ = orbitZ * tiltCos;
+              const localY = orbitZ * oc.tiltSin;
+              const localZ = orbitZ * oc.tiltCos;
 
               ballData.centerX = parentData.centerX + localX;
               ballData.centerY = parentData.centerY + localY;
@@ -654,15 +670,19 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
         const pfRaw = planetFormRef.current; // 0 = loose ball, 1 = striped planet
 
         // 3D planet rotation — tilt + slow spin so stripes look 3D
-        const planetTilt = 0.35; // radians — tilt axis so stripes aren't flat horizontal
         const planetSpin = time * 0.12; // slow Y-axis rotation
-        const cosT = Math.cos(planetTilt), sinT = Math.sin(planetTilt);
+        const cosT = PLANET_TILT_COS, sinT = PLANET_TILT_SIN;
         const cosS = Math.cos(planetSpin), sinS = Math.sin(planetSpin);
 
         // Third pass: update all particles with depth effects
         let colorsDirty = false;
         for (const [, ballData] of ballDataRef.current) {
           const config = ballData.config;
+          const isMainBall = config.parentId === null;
+
+          // Skip child-ball particles entirely when off-screen in portfolio mode
+          if (!isMainBall && blend > 0.5) continue;
+
           const spinAngle = time * config.spinSpeed;
 
           const parentZ = config.parentId
@@ -673,20 +693,23 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
           const depthFactor = Math.max(0, Math.min(1, rawDepthFactor));
           const sizeScale = 0.15 + depthFactor * 1.05;
 
-          // Only scale main ball particles (child ball is off-screen in portfolio mode)
-          const isMainBall = config.parentId === null;
           const distScale = isMainBall ? sectionScale : 1;
           const surfaceRadius = config.radius * sectionScale;
+          const formationActive = isMainBall && pfRaw > 0;
 
-          for (let i = 0; i < config.particleCount; i++) {
+          // Limit to drawRange — particles beyond it aren't rendered, skip CPU work too
+          const loopEnd = Math.min(config.particleCount, drawRange - ballData.startIndex);
+          for (let i = 0; i < loopEnd; i++) {
             const globalIndex = ballData.startIndex + i;
             let localX: number, localY: number, localZ = 0;
 
-            // Per-particle staggered assembly: each particle has its own delay
-            const delay = isMainBall ? ballData.assemblyDelay[i] : 0;
-            const pf = isMainBall ? Math.max(0, Math.min(1, (pfRaw - delay) / (1 - delay))) : 0;
-            // Cubic easing on the per-particle progress
-            const pfCubic = pf * pf * pf;
+            // Per-particle staggered assembly (skip entirely when no formation)
+            let pfCubic = 0;
+            if (formationActive) {
+              const delay = ballData.assemblyDelay[i];
+              const pf = Math.max(0, Math.min(1, (pfRaw - delay) / (1 - delay)));
+              pfCubic = pf * pf * pf;
+            }
 
             // Fuzzy target: each particle aims for a slightly different radius
             const fuzzyTarget = surfaceRadius + ballData.surfaceOffset[i];
@@ -762,7 +785,7 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
 
             // Size: base depth scaling + enlarge during planet formation
             let finalSize = ballData.baseSizes[i] * sizeScale;
-            if (isMainBall && pfCubic > 0.001) {
+            if (formationActive && pfCubic > 0.001) {
               finalSize *= 1.0 + pfCubic * 0.5;
               // 3D depth fade: back-side particles shrink for depth illusion
               const depthNorm = Math.max(0, Math.min(1, (localZ / surfaceRadius + 1) * 0.5));

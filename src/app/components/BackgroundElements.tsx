@@ -40,14 +40,17 @@ const USE_THREEJS_DUST = true;
 
 const BackgroundElements = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [currentSection, setCurrentSection] = useState<'home' | 'me' | 'portfolio'>('home');
+  const sectionRef = useRef<'home' | 'me' | 'portfolio'>('home');
+  const [sectionForChild, setSectionForChild] = useState<'home' | 'me' | 'portfolio'>('home');
   const device = useDevice();
 
-  // Listen for global section changes
+  // Listen for global section changes — ref for animation loop (no useEffect re-run),
+  // state for CosmicDustThree prop (lightweight re-render on navigation only)
   useEffect(() => {
     if (typeof window !== 'undefined') {
       (window as any).setBackgroundSection = (section: 'home' | 'me' | 'portfolio') => {
-        setCurrentSection(section);
+        sectionRef.current = section;
+        setSectionForChild(section);
       };
     }
   }, []);
@@ -393,8 +396,8 @@ const BackgroundElements = () => {
 
       // Calculate sphere position and size using appropriate helper function
       const sphereInfo: SphereInfo = isMobile
-        ? calculateMobileSpherePositionAndSize(canvas, time, currentSection)
-        : calculateSpherePositionAndSize(canvas, time, currentSection);
+        ? calculateMobileSpherePositionAndSize(canvas, time, sectionRef.current)
+        : calculateSpherePositionAndSize(canvas, time, sectionRef.current);
       const { x: sphereX, y: sphereY, z: sphereZ, radius } = sphereInfo;
 
       // Share sphere position with Three.js dust component via global (no React re-renders)
@@ -1118,7 +1121,7 @@ const BackgroundElements = () => {
       }
       window.removeEventListener('resize', resizeCanvas);
     };
-  }, [currentSection, device.isMobile, device.hardwareConcurrency]);
+  }, [device.isMobile, device.hardwareConcurrency]);
 
   return (
     <>
@@ -1129,7 +1132,7 @@ const BackgroundElements = () => {
       />
       {USE_THREEJS_DUST && (
         <CosmicDustThree
-          section={currentSection}
+          section={sectionForChild}
         />
       )}
     </>

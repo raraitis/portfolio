@@ -34,7 +34,7 @@ export const styles = {
     saturnFrame: {
       position: 'fixed' as const,
       inset: 0,
-      margin: '20px',
+      // margin is controlled by .saturn-frame CSS class (responsive: 10px mobile, 20px desktop)
       border: `1px solid ${colors.saturn.darkest}`,
       borderImage: `linear-gradient(45deg, 
         ${colors.saturn.darkest} 0%, 

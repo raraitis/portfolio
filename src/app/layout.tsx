@@ -32,11 +32,11 @@ export default function RootLayout({
   return (
     <html lang='en' className={inter.variable}>
       <body
-        className='min-h-screen text-gray-900 font-sans antialiased'
+        className='min-h-dvh text-gray-900 font-sans antialiased'
         style={styles.layout.saturnBody}
       >
         {/* Saturn-colored frame border */}
-        <div style={styles.layout.saturnFrame} />
+        <div className='saturn-frame' style={styles.layout.saturnFrame} />
 
         <AnimationProvider>
           <BackgroundElements />

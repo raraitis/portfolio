@@ -41,7 +41,7 @@ const USE_THREEJS_DUST = true;
 
 const BackgroundElements = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [currentSection, setCurrentSection] = useState<'home' | 'me'>('home');
+  const [currentSection, setCurrentSection] = useState<'home' | 'me' | 'portfolio'>('home');
   const [spherePos, setSpherePos] = useState({ x: 0, y: 0, radius: 100 });
   const animationActions = useAnimationActions();
   const device = useDevice();
@@ -49,7 +49,7 @@ const BackgroundElements = () => {
   // Listen for global section changes
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      (window as any).setBackgroundSection = (section: 'home' | 'me') => {
+      (window as any).setBackgroundSection = (section: 'home' | 'me' | 'portfolio') => {
         setCurrentSection(section);
       };
     }
@@ -1137,6 +1137,7 @@ const BackgroundElements = () => {
         <CosmicDustThree
           centerX={spherePos.x}
           centerY={spherePos.y}
+          section={currentSection}
         />
       )}
     </>

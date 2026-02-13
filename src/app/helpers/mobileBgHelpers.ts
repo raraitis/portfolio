@@ -89,7 +89,7 @@ export const renderMobileBackgroundPattern = (
 export const calculateMobileSpherePositionAndSize = (
   canvas: HTMLCanvasElement,
   time: number,
-  currentSection: 'home' | 'me'
+  currentSection: string
 ): SphereInfo => {
   // Use higher precision for mobile calculations
   const precisionTime = time;

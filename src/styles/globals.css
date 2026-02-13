@@ -20,3 +20,14 @@ body {
 .animate-spin-slow {
   animation: spin-slow linear infinite;
 }
+
+/* Responsive frame border - tighter on mobile to give content more room */
+.saturn-frame {
+  margin: 10px;
+}
+
+@media (min-width: 640px) {
+  .saturn-frame {
+    margin: 20px;
+  }
+}

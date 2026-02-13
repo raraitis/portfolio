@@ -130,7 +130,7 @@ export const renderBackgroundPattern = (
 export const calculateSpherePositionAndSize = (
   canvas: HTMLCanvasElement,
   time: number,
-  currentSection: 'home' | 'me'
+  currentSection: string
 ): SphereInfo => {
   // Sphere size - responsive and bigger
   // Base radius - bigger on ME section

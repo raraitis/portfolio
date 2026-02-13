@@ -279,7 +279,7 @@ export default function InteractiveText() {
       <div className='fixed inset-0 overflow-hidden'>
         <div
           ref={containerRef}
-          className='absolute top-0 left-0 flex items-start justify-start pt-8 pl-8 sm:pt-12 sm:pl-12'
+          className='absolute top-0 left-0 flex items-start justify-start pt-5 pl-5 sm:pt-12 sm:pl-12'
         >
           {/* RAITIS - First name */}
           <DraggableWord

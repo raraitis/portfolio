@@ -13,12 +13,12 @@ const PORTFOLIO_ITEMS: PortfolioItem[] = [
   {
     title: 'Monitec',
     url: 'https://monitec.app',
-    description: 'monitoring platform',
+    description: 'Technical inspection platform',
   },
   {
     title: 'Portfolio',
     url: 'https://raitiskraslovskis.com',
-    description: 'this website',
+    description: '',
   },
 ];
 

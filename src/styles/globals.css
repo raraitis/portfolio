@@ -1,9 +1,18 @@
 @import "tailwindcss";
 
+html {
+  background: #f5f1e8; /* saturn.lightest — prevents white flash on load and overscroll */
+  overscroll-behavior: none;
+}
+
 body {
   color: #171717;
-  background: #ffffff;
+  background: #f5f1e8;
   font-family: 'Alien Encounters', 'Inter', system-ui, sans-serif;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+  /* iOS safe area padding so content isn't behind notch/home indicator */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
 /* Saturn ring animations */
@@ -24,6 +33,11 @@ body {
 /* Responsive frame border - tighter on mobile to give content more room */
 .saturn-frame {
   margin: 10px;
+  /* Respect iOS safe areas (notch, home indicator) */
+  margin-top: max(10px, env(safe-area-inset-top));
+  margin-bottom: max(10px, env(safe-area-inset-bottom));
+  margin-left: max(10px, env(safe-area-inset-left));
+  margin-right: max(10px, env(safe-area-inset-right));
 }
 
 @media (min-width: 640px) {

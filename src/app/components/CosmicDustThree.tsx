@@ -5,8 +5,6 @@ import * as THREE from 'three';
 import gsap from 'gsap';
 
 interface CosmicDustThreeProps {
-  centerX: number;
-  centerY: number;
   section: 'home' | 'me' | 'portfolio';
 }
 
@@ -34,7 +32,7 @@ const BALLS: BallConfig[] = [
   {
     id: 'main-ball',
     color: { r: 0.25, g: 0.27, b: 0.24 },
-    particleCount: 8000,
+    particleCount: 18000,
     radius: 300,
     orbitRadius: 300,
     orbitEccentricity: 0.4,
@@ -206,6 +204,13 @@ const particleFragmentShader = `
   }
 `;
 
+// ============= MATH HELPERS (mirror GLSL) =============
+function smoothstep(edge0: number, edge1: number, x: number) {
+  const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+  return t * t * (3 - 2 * t);
+}
+function fract(x: number) { return x - Math.floor(x); }
+
 // ============= RUNTIME DATA TYPES =============
 interface BallData {
   config: BallConfig;
@@ -224,9 +229,14 @@ interface BallData {
   centerY: number;
   centerZ: number;
   baseSizes: Float32Array;
+  stripeValues: Float32Array;
+  surfaceOffset: Float32Array; // per-particle random offset for fuzzy sphere edges
+  targetPhi: Float32Array; // nearest stripe band center phi — particles migrate here
+  assemblyDelay: Float32Array; // per-particle random delay for staggered assembly
+  isStripeParticle: Uint8Array; // 1 = dark stripe particle, 0 = lighter fill particle
 }
 
-const CosmicDustThree = ({ centerX, centerY, section }: CosmicDustThreeProps) => {
+const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -246,6 +256,7 @@ const CosmicDustThree = ({ centerX, centerY, section }: CosmicDustThreeProps) =>
   const warpTimelineRef = useRef<gsap.core.Timeline | null>(null);
   const planetScreenPosRef = useRef({ x: 0, y: 0, size: 0, depthFactor: 0 });
   const portfolioBlendRef = useRef(0); // 0 = home layout, 1 = portfolio layout (big ball on left)
+  const planetFormRef = useRef(0); // 0 = loose ball, 1 = striped planet form
 
   // Planet click → triggers GSAP warp timeline
   const handlePlanetClick = () => {
@@ -300,10 +311,16 @@ const CosmicDustThree = ({ centerX, centerY, section }: CosmicDustThreeProps) =>
         duration: 2.0,
         ease: 'power2.out',
       }, 4.2)
-      // Done — flying is over
+      // Ball gradually assembles into striped planet form (longer, gentler)
+      .to(planetFormRef, {
+        current: 1,
+        duration: 5.0,
+        ease: 'power1.inOut',
+      }, 5.5)
+      // Done — flying is over after planet form completes
       .call(() => {
         flyingRef.current = false;
-      }, [], 6.2);
+      }, [], 10.5);
   };
 
   useEffect(() => {
@@ -369,6 +386,11 @@ const CosmicDustThree = ({ centerX, centerY, section }: CosmicDustThreeProps) =>
         centerY: 0,
         centerZ: 0,
         baseSizes: new Float32Array(count),
+        stripeValues: new Float32Array(count),
+        surfaceOffset: new Float32Array(count),
+        targetPhi: new Float32Array(count),
+        assemblyDelay: new Float32Array(count),
+        isStripeParticle: new Uint8Array(count),
       };
 
       for (let i = 0; i < count; i++) {
@@ -418,6 +440,47 @@ const CosmicDustThree = ({ centerX, centerY, section }: CosmicDustThreeProps) =>
         colors[globalIndex * 3] = config.color.r;
         colors[globalIndex * 3 + 1] = config.color.g;
         colors[globalIndex * 3 + 2] = config.color.b;
+      }
+
+      // Pre-compute stripe data + surface scatter for each particle
+      const stripeCount = 14.0;
+      for (let i = 0; i < count; i++) {
+        const uvY = ballData.phi[i] / Math.PI;
+        const y = uvY * stripeCount;
+        ballData.stripeValues[i] = smoothstep(0.28, 0.32, fract(y)) - smoothstep(0.58, 0.62, fract(y));
+
+        // Find nearest stripe band center: centers are at (n + 0.45) / stripeCount in UV space
+        const bandIndex = Math.floor(y);
+        const fractY = fract(y);
+        // Stripe band center is at fract = 0.45
+        let nearestBand: number;
+        if (fractY < 0.45) {
+          nearestBand = bandIndex + 0.45;
+        } else if (fractY > 0.55) {
+          // Closer to next band
+          nearestBand = bandIndex + 1 + 0.45;
+        } else {
+          // Already in stripe center zone
+          nearestBand = bandIndex + 0.45;
+        }
+        // Clamp to valid UV range [0, stripeCount]
+        nearestBand = Math.max(0.45, Math.min(stripeCount - 0.55, nearestBand));
+        // Convert back to phi: targetPhi = (nearestBand / stripeCount) * PI
+        // Add small random spread so particles don't all land on exact same line
+        const spread = (Math.random() - 0.5) * 0.25; // spread within the stripe band
+        ballData.targetPhi[i] = ((nearestBand + spread) / stripeCount) * Math.PI;
+
+        // Designate ~40% as stripe particles (darker), ~60% as fill (lighter)
+        ballData.isStripeParticle[i] = Math.random() < 0.4 ? 1 : 0;
+        // Fill particles stay at their natural latitude — no stripe band migration
+        if (!ballData.isStripeParticle[i]) {
+          ballData.targetPhi[i] = ballData.phi[i];
+        }
+
+        // Random offset so the sphere edge is fuzzy, not a perfect circle
+        ballData.surfaceOffset[i] = (Math.random() - 0.4) * 0.3 * config.radius;
+        // Random delay so particles assemble at different times (organic, not radial)
+        ballData.assemblyDelay[i] = Math.random() * 0.55; // 0 to 0.55 — some start immediately, some wait
       }
 
       ballDataMap.set(config.id, ballData);
@@ -481,6 +544,18 @@ const CosmicDustThree = ({ centerX, centerY, section }: CosmicDustThreeProps) =>
       const isFlying = flyingRef.current;
       // Use frozen time for orbital positions during warp so the ball doesn't drift
       const orbitTime = isFlying ? frozenOrbitTimeRef.current : time;
+
+      // Read sphere position from BackgroundElements (shared via window global, no React re-renders)
+      const sp = (window as any).__spherePos;
+      if (sp && particlesRef.current) {
+        const offsetX = sp.x - window.innerWidth / 2;
+        const offsetY = -(sp.y - window.innerHeight / 2);
+        particlesRef.current.position.set(offsetX, offsetY, 0);
+        if (planetMeshRef.current) {
+          planetMeshRef.current.userData.baseOffsetX = offsetX;
+          planetMeshRef.current.userData.baseOffsetY = offsetY;
+        }
+      }
 
       if (particlesRef.current && ballDataRef.current.size > 0) {
         const posArray = particlesRef.current.geometry.attributes.position.array as Float32Array;
@@ -572,11 +647,20 @@ const CosmicDustThree = ({ centerX, centerY, section }: CosmicDustThreeProps) =>
 
         // Get size array for depth-based scaling
         const sizeArray = particlesRef.current.geometry.attributes.size.array as Float32Array;
+        const colorArray = particlesRef.current.geometry.attributes.ballColor.array as Float32Array;
 
         // Portfolio scale: particles spread out for a bigger ball
         const sectionScale = 1 + blend * 1.0; // 2x radius at full portfolio blend
+        const pfRaw = planetFormRef.current; // 0 = loose ball, 1 = striped planet
+
+        // 3D planet rotation — tilt + slow spin so stripes look 3D
+        const planetTilt = 0.35; // radians — tilt axis so stripes aren't flat horizontal
+        const planetSpin = time * 0.12; // slow Y-axis rotation
+        const cosT = Math.cos(planetTilt), sinT = Math.sin(planetTilt);
+        const cosS = Math.cos(planetSpin), sinS = Math.sin(planetSpin);
 
         // Third pass: update all particles with depth effects
+        let colorsDirty = false;
         for (const [, ballData] of ballDataRef.current) {
           const config = ballData.config;
           const spinAngle = time * config.spinSpeed;
@@ -592,37 +676,133 @@ const CosmicDustThree = ({ centerX, centerY, section }: CosmicDustThreeProps) =>
           // Only scale main ball particles (child ball is off-screen in portfolio mode)
           const isMainBall = config.parentId === null;
           const distScale = isMainBall ? sectionScale : 1;
+          const surfaceRadius = config.radius * sectionScale;
 
           for (let i = 0; i < config.particleCount; i++) {
             const globalIndex = ballData.startIndex + i;
-            let localX: number, localY: number;
+            let localX: number, localY: number, localZ = 0;
+
+            // Per-particle staggered assembly: each particle has its own delay
+            const delay = isMainBall ? ballData.assemblyDelay[i] : 0;
+            const pf = isMainBall ? Math.max(0, Math.min(1, (pfRaw - delay) / (1 - delay))) : 0;
+            // Cubic easing on the per-particle progress
+            const pfCubic = pf * pf * pf;
+
+            // Fuzzy target: each particle aims for a slightly different radius
+            const fuzzyTarget = surfaceRadius + ballData.surfaceOffset[i];
 
             if (ballData.isChaotic[i]) {
               ballData.chaoticOrbitAngle[i] += ballData.chaoticOrbitSpeed[i] * 0.016;
-              const orbitX = Math.cos(ballData.chaoticOrbitAngle[i]) * ballData.chaoticOrbitRadius[i];
-              const orbitY = Math.sin(ballData.chaoticOrbitAngle[i]) * ballData.chaoticOrbitRadius[i];
-              localX = (ballData.chaoticCenterX[i] + orbitX) * distScale;
-              localY = (ballData.chaoticCenterY[i] + orbitY) * distScale;
+              // Shrink chaotic orbits during planet formation
+              const chaoticScale = isMainBall && pfCubic > 0.001 ? 1 - pfCubic * 0.8 : 1;
+              const orbitX = Math.cos(ballData.chaoticOrbitAngle[i]) * ballData.chaoticOrbitRadius[i] * chaoticScale;
+              const orbitY = Math.sin(ballData.chaoticOrbitAngle[i]) * ballData.chaoticOrbitRadius[i] * chaoticScale;
+
+              if (isMainBall && pfCubic > 0.001) {
+                // During planet form: chaotic particles also migrate to stripes
+                const cx = ballData.chaoticCenterX[i] + orbitX;
+                const cy = ballData.chaoticCenterY[i] + orbitY;
+                const cDist = Math.sqrt(cx * cx + cy * cy) || 1;
+                const effectiveDist = cDist + (fuzzyTarget - cDist) * pfCubic;
+                // Migrate angle toward target stripe phi
+                const currentAngle = Math.atan2(cx, cy);
+                const targetAngle = ballData.targetPhi[i] - Math.PI / 2;
+                const blendedAngle = currentAngle + (targetAngle - currentAngle) * pfCubic;
+                // Compute 3D position for rotation
+                localX = Math.sin(blendedAngle) * effectiveDist;
+                localY = Math.cos(blendedAngle) * effectiveDist;
+                localZ = Math.sin(ballData.theta[i]) * Math.sin(ballData.phi[i]) * effectiveDist * pfCubic;
+              } else {
+                localX = (ballData.chaoticCenterX[i] + orbitX) * distScale;
+                localY = (ballData.chaoticCenterY[i] + orbitY) * distScale;
+              }
             } else {
               const currentTheta = ballData.theta[i] + spinAngle + time * config.swirlSpeed * ballData.speeds[i];
               const phi = ballData.phi[i];
-              const dist = ballData.distances[i] * distScale;
+              let dist = ballData.distances[i] * distScale;
 
-              const sinPhi = Math.sin(phi);
-              const cosPhi = Math.cos(phi);
+              // Planet formation: push to surface + migrate phi toward nearest stripe
+              let effectivePhi = phi;
+              if (isMainBall && pfCubic > 0.001) {
+                dist = dist + (fuzzyTarget - dist) * pfCubic;
+                effectivePhi = phi + (ballData.targetPhi[i] - phi) * pfCubic;
+              }
+
+              const sinPhi = Math.sin(effectivePhi);
+              const cosPhi = Math.cos(effectivePhi);
               localX = Math.cos(currentTheta) * sinPhi * dist;
               localY = cosPhi * dist;
+              // Z component for 3D rotation (blends in with planet formation)
+              localZ = Math.sin(currentTheta) * sinPhi * dist * pfCubic;
+            }
+
+            // Apply 3D rotation during planet formation for tilted, spinning look
+            if (isMainBall && pfCubic > 0.01) {
+              // Tilt around X axis
+              const ty = localY * cosT - localZ * sinT;
+              const tz = localY * sinT + localZ * cosT;
+              // Spin around Y axis
+              const sx = localX * cosS - tz * sinS;
+              const sz = localX * sinS + tz * cosS;
+              // Blend rotated position with original based on formation progress
+              localX = localX + (sx - localX) * pfCubic;
+              localY = localY + (ty - localY) * pfCubic;
+              localZ = sz * pfCubic; // Z used for depth fade below
+            }
+
+            // Planet formation: subtle vibration jitter for settling particles
+            if (isMainBall && pfCubic > 0.7) {
+              const jitterAmt = (pfCubic - 0.7) * 2.0;
+              localX += Math.sin(time * 3.0 + i * 0.7) * jitterAmt;
+              localY += Math.cos(time * 2.5 + i * 1.1) * jitterAmt;
             }
 
             posArray[globalIndex * 3] = localX + ballData.centerX;
             posArray[globalIndex * 3 + 1] = localY + ballData.centerY;
 
-            sizeArray[globalIndex] = ballData.baseSizes[i] * sizeScale;
+            // Size: base depth scaling + enlarge during planet formation
+            let finalSize = ballData.baseSizes[i] * sizeScale;
+            if (isMainBall && pfCubic > 0.001) {
+              finalSize *= 1.0 + pfCubic * 0.5;
+              // 3D depth fade: back-side particles shrink for depth illusion
+              const depthNorm = Math.max(0, Math.min(1, (localZ / surfaceRadius + 1) * 0.5));
+              const depthMul = 0.35 + depthNorm * 0.65; // back = 35% size, front = 100%
+              finalSize *= 1 - pfCubic + pfCubic * depthMul;
+            }
+            sizeArray[globalIndex] = finalSize;
+
+            // Color: blend from base to stripe/fill colors with depth shading
+            // Only update when formation is active (pfCubic > 0) to avoid unnecessary writes
+            if (isMainBall && pfCubic > 0.001) {
+              const dn = Math.max(0, Math.min(1, (localZ / surfaceRadius + 1) * 0.5));
+              const depthShade = 0.65 + dn * 0.35; // back = 65% brightness, front = 100%
+
+              let tR: number, tG: number, tB: number;
+              if (ballData.isStripeParticle[i]) {
+                // Dark stripe color
+                tR = 0.13 * depthShade;
+                tG = 0.15 * depthShade;
+                tB = 0.12 * depthShade;
+              } else {
+                // Lighter fill color
+                tR = 0.38 * depthShade;
+                tG = 0.40 * depthShade;
+                tB = 0.36 * depthShade;
+              }
+
+              colorArray[globalIndex * 3] = config.color.r + (tR - config.color.r) * pfCubic;
+              colorArray[globalIndex * 3 + 1] = config.color.g + (tG - config.color.g) * pfCubic;
+              colorArray[globalIndex * 3 + 2] = config.color.b + (tB - config.color.b) * pfCubic;
+              colorsDirty = true;
+            }
           }
         }
 
         particlesRef.current.geometry.attributes.position.needsUpdate = true;
         particlesRef.current.geometry.attributes.size.needsUpdate = true;
+        if (colorsDirty) {
+          particlesRef.current.geometry.attributes.ballColor.needsUpdate = true;
+        }
       }
 
       // Update striped planet — orbits within the main ball like a particle
@@ -672,10 +852,12 @@ const CosmicDustThree = ({ centerX, centerY, section }: CosmicDustThreeProps) =>
         // Planet fades during warp and stays hidden in portfolio mode
         if (planetMaterialRef.current) {
           const warpProgress = material.uniforms.uWarpProgress.value;
-          const warpFade = Math.max(0, 1 - warpProgress * 1.2); // Gone by warp ~0.83
+          // Planet grows as we "zoom in" — quadratic acceleration for natural feel
+          const warpGrow = 1.0 + warpProgress * warpProgress * 1.8;
+          const warpFade = Math.max(0, 1 - warpProgress * 1.05); // Fade later so growth is visible
           const portfolioFade = Math.max(0, 1 - portfolioBlendRef.current * 2); // Also gone in portfolio mode
           planetMaterialRef.current.uniforms.uOpacity.value = depthOpacity * warpFade * portfolioFade;
-          planetMeshRef.current.scale.setScalar(depthScale * pulse);
+          planetMeshRef.current.scale.setScalar(depthScale * pulse * warpGrow);
         }
 
         // Track planet screen position for click target
@@ -753,6 +935,12 @@ const CosmicDustThree = ({ centerX, centerY, section }: CosmicDustThreeProps) =>
   // Handle section transitions (portfolio → home: blend back)
   useEffect(() => {
     if (section !== 'portfolio' && portfolioBlendRef.current > 0) {
+      // Reverse planet form first, then blend back to home layout
+      gsap.to(planetFormRef, {
+        current: 0,
+        duration: 1.0,
+        ease: 'power2.in',
+      });
       gsap.to(portfolioBlendRef, {
         current: 0,
         duration: 1.5,
@@ -761,18 +949,7 @@ const CosmicDustThree = ({ centerX, centerY, section }: CosmicDustThreeProps) =>
     }
   }, [section]);
 
-  // Update position when center changes
-  useEffect(() => {
-    const offsetX = centerX - window.innerWidth / 2;
-    const offsetY = -(centerY - window.innerHeight / 2);
-    if (particlesRef.current) {
-      particlesRef.current.position.set(offsetX, offsetY, 0);
-    }
-    if (planetMeshRef.current) {
-      planetMeshRef.current.userData.baseOffsetX = offsetX;
-      planetMeshRef.current.userData.baseOffsetY = offsetY;
-    }
-  }, [centerX, centerY]);
+  // Position is read from window.__spherePos in the animation loop (no re-renders)
 
   return (
     <>

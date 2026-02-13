@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useAnimationActions } from '@/contexts/AnimationContext';
 import { useDevice } from '../hooks/useDevice';
 import { styles } from '../../styles';
 import { ORBITAL_BIG_DOTS_CONFIG } from '../config/orbitalBigDotsConfig';
@@ -42,8 +41,6 @@ const USE_THREEJS_DUST = true;
 const BackgroundElements = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [currentSection, setCurrentSection] = useState<'home' | 'me' | 'portfolio'>('home');
-  const [spherePos, setSpherePos] = useState({ x: 0, y: 0, radius: 100 });
-  const animationActions = useAnimationActions();
   const device = useDevice();
 
   // Listen for global section changes
@@ -400,11 +397,8 @@ const BackgroundElements = () => {
         : calculateSpherePositionAndSize(canvas, time, currentSection);
       const { x: sphereX, y: sphereY, z: sphereZ, radius } = sphereInfo;
 
-      // Update store for interactions
-      animationActions.updateSpherePosition({ x: sphereX, y: sphereY });
-
-      // Update sphere position for Three.js dust component
-      setSpherePos({ x: sphereX, y: sphereY, radius: radius * 0.33 });
+      // Share sphere position with Three.js dust component via global (no React re-renders)
+      (window as any).__spherePos = { x: sphereX, y: sphereY, radius: radius * 0.33 };
 
       // DEBUG: Skip all other rendering when using Three.js dust
       if (DEBUG_ONLY_COSMIC_DUST && USE_THREEJS_DUST) {
@@ -1135,8 +1129,6 @@ const BackgroundElements = () => {
       />
       {USE_THREEJS_DUST && (
         <CosmicDustThree
-          centerX={spherePos.x}
-          centerY={spherePos.y}
           section={currentSection}
         />
       )}

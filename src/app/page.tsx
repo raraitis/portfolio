@@ -1,14 +1,16 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, LazyMotion, AnimatePresence, domAnimation } from '@/lib/motion';
 import InteractiveText from './components/InteractiveTextSimple';
 import PortfolioSection from './components/PortfolioSection';
+import GameSection from './components/GameSection';
+import { on, emit, type SectionName } from '@/lib/events';
 
 // ME Section Component
 const MeSection = () => {
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -34,7 +36,7 @@ const MeSection = () => {
               backgroundClip: 'text',
             }}
           >
-            <motion.span
+            <m.span
               initial={{ backgroundPosition: '200% 0' }}
               animate={{ backgroundPosition: '-200% 0' }}
               transition={{
@@ -57,7 +59,7 @@ const MeSection = () => {
             >
               you think it. i make it. you break it. i solve it. universe
               approves. we happy. thats a deal.
-            </motion.span>
+            </m.span>
             you think it. i make it. you break it. i solve it. universe
             approves. we happy. thats a deal.
           </p>
@@ -81,7 +83,7 @@ const MeSection = () => {
             </a>
             <span className='text-gray-300 font-light select-none'>|</span>
             <button
-              onClick={() => (window as any).triggerPortfolioWarp?.()}
+              onClick={() => emit('warp-trigger')}
               className='text-gray-500 hover:text-black active:text-black transition-colors font-alien text-sm sm:text-base tracking-wider py-3 px-3 min-h-[44px] inline-flex items-center bg-transparent border-none cursor-pointer'
             >
               PORTFOLIO
@@ -89,25 +91,21 @@ const MeSection = () => {
           </div>
         </div>
       </div>
-    </motion.div>
+    </m.div>
   );
 };
 
 // Main Component
 export default function HomePage() {
-  const [currentSection, setCurrentSection] = useState<'home' | 'me' | 'portfolio'>('home');
+  const [currentSection, setCurrentSection] = useState<SectionName>('home');
 
-  // Global navigation callback — useEffect prevents running during render
-  const navigateToSection = useCallback((section: 'home' | 'me' | 'portfolio') => {
+  const navigateToSection = useCallback((section: SectionName) => {
     setCurrentSection(section);
-    (window as any).setBackgroundSection?.(section);
-    (window as any).updateNavSection?.(section);
+    emit('background-section', section);
+    emit('section-changed', section);
   }, []);
 
-  useEffect(() => {
-    (window as any).navigateToSection = navigateToSection;
-    return () => { delete (window as any).navigateToSection; };
-  }, [navigateToSection]);
+  useEffect(() => on('navigate', navigateToSection), [navigateToSection]);
 
   const renderSection = () => {
     switch (currentSection) {
@@ -115,25 +113,29 @@ export default function HomePage() {
         return <MeSection key='me' />;
       case 'portfolio':
         return <PortfolioSection key='portfolio' />;
+      case 'game':
+        return <GameSection key='game' />;
       default:
         return (
-          <motion.div
+          <m.div
             key='home'
             initial={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
           >
             <InteractiveText />
-          </motion.div>
+          </m.div>
         );
     }
   };
 
   return (
-    <main className='relative'>
-      <AnimatePresence mode='wait'>
-        {renderSection()}
-      </AnimatePresence>
-    </main>
+    <LazyMotion features={domAnimation}>
+      <main className='relative'>
+        <AnimatePresence mode='wait'>
+          {renderSection()}
+        </AnimatePresence>
+      </main>
+    </LazyMotion>
   );
 }

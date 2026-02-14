@@ -2,21 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
+import { on, type SectionName } from '@/lib/events';
 
-// Dynamically import Three.js component to avoid SSR issues
 const CosmicDustThree = dynamic(() => import('./CosmicDustThree'), {
   ssr: false,
 });
 
 const BackgroundElements = () => {
-  const [section, setSection] = useState<'home' | 'me' | 'portfolio'>('home');
+  const [section, setSection] = useState<SectionName>('home');
 
-  // Listen for global section changes from page navigation
-  useEffect(() => {
-    (window as any).setBackgroundSection = (s: 'home' | 'me' | 'portfolio') => {
-      setSection(s);
-    };
-  }, []);
+  useEffect(() => on('background-section', setSection), []);
 
   return <CosmicDustThree section={section} />;
 };

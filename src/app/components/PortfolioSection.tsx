@@ -1,6 +1,6 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { m } from '@/lib/motion';
 
 interface PortfolioItem {
   title: string;
@@ -24,7 +24,7 @@ const PORTFOLIO_ITEMS: PortfolioItem[] = [
 
 const PortfolioSection = () => {
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -40,7 +40,7 @@ const PortfolioSection = () => {
 
         <div className='space-y-6 sm:space-y-8'>
           {PORTFOLIO_ITEMS.map((item, index) => (
-            <motion.a
+            <m.a
               key={item.title}
               href={item.url}
               target='_blank'
@@ -59,11 +59,11 @@ const PortfolioSection = () => {
                 </span>
               </div>
               <div className='mt-1 h-px bg-gray-200 group-hover:bg-gray-400 transition-colors' />
-            </motion.a>
+            </m.a>
           ))}
         </div>
       </div>
-    </motion.div>
+    </m.div>
   );
 };
 

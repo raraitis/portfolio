@@ -1,7 +1,6 @@
 import { Inter } from 'next/font/google';
 import '../styles/globals.css';
 import '../styles/fonts.css';
-import { AnimationProvider } from '@/contexts/AnimationContext';
 import SimpleNavigation from './components/SimpleNavigation';
 import BackgroundElements from './components/BackgroundElements';
 import { styles as layoutStyles } from '@/styles';
@@ -42,11 +41,9 @@ export default function RootLayout({
         {/* Saturn-colored frame border */}
         <div className='saturn-frame' style={layoutStyles.layout.saturnFrame} />
 
-        <AnimationProvider>
-          <BackgroundElements />
-          <SimpleNavigation />
-          <main>{children}</main>
-        </AnimationProvider>
+        <BackgroundElements />
+        <SimpleNavigation />
+        <main>{children}</main>
       </body>
     </html>
   );

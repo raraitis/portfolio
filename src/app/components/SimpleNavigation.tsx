@@ -1,24 +1,16 @@
 'use client'
 
 import { useState, useEffect } from 'react';
+import { on, emit, type SectionName } from '@/lib/events';
 
 const SimpleNavigation = () => {
-  const [currentSection, setCurrentSection] = useState<'home' | 'me' | 'portfolio'>('home');
+  const [currentSection, setCurrentSection] = useState<SectionName>('home');
 
-  // Listen for section changes
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      (window as any).updateNavSection = (section: 'home' | 'me' | 'portfolio') => {
-        setCurrentSection(section);
-      };
-    }
-  }, []);
+  useEffect(() => on('section-changed', setCurrentSection), []);
 
-  const handleNavigate = (section: 'home' | 'me' | 'portfolio') => {
+  const handleNavigate = (section: SectionName) => {
     setCurrentSection(section);
-    if (typeof window !== 'undefined' && (window as any).navigateToSection) {
-      (window as any).navigateToSection(section);
-    }
+    emit('navigate', section);
   };
 
   // Define navigation items
@@ -93,8 +85,8 @@ const SimpleNavigation = () => {
             <button
               key={item.word}
               onClick={() => {
-                if (item.useWarp && (window as any).triggerPortfolioWarp) {
-                  (window as any).triggerPortfolioWarp();
+                if (item.useWarp) {
+                  emit('warp-trigger');
                 } else {
                   handleNavigate(item.section);
                 }

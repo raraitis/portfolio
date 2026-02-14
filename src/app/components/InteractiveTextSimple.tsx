@@ -3,9 +3,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { animated, useSpringValue, useSpring } from '@react-spring/web';
 import { useDrag } from '@use-gesture/react';
-import {
-  useAnimationActions,
-} from '@/contexts/AnimationContext';
 import { useDevice } from '../hooks/useDevice';
 import { nameText, nameTextMobile } from '../../styles';
 
@@ -51,9 +48,6 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
       : { tension: 150, friction: 20 },
   };
 
-  // Animation context — only use dispatch (actions), NOT state subscription
-  const animationActions = useAnimationActions();
-
   const wordX = useSpringValue(initialX); // Start directly at final position
   const wordY = useSpringValue(initialY);
   const wordScale = useSpringValue(1); // Start at full size
@@ -76,7 +70,6 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
         wordX.set(initialX + mx);
         wordY.set(initialY + my);
         wordScale.start({ to: 1.1, config: springConfig.scale }); // Use optimized config
-        animationActions.updateBackgroundIntensity();
       } else {
         // Not actively dragging - apply gravity with visible drop
         const oy = wordY.get();
@@ -100,7 +93,6 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
           scatterWord(ox, oy + dropDistance * 0.6); // Scatter from 60% down position
         }, scatterDelay);
 
-        animationActions.updateBackgroundIntensity();
       }
     },
     {

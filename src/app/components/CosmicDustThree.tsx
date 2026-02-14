@@ -176,6 +176,8 @@ const particleVertexShader = `
 // Fragment shader: rotates and stretches UVs to create radial streaks,
 // brightens particles toward warm white during warp
 const particleFragmentShader = `
+  precision mediump float; // 2x faster on mobile GPUs
+
   varying float vAlpha;
   varying vec3 vColor;
   varying float vWarp;
@@ -200,9 +202,9 @@ const particleFragmentShader = `
       uv = rotUv;
     }
 
-    // Soft gaussian blob — no distinct shape, just a gentle glow
+    // Sharp gaussian — tighter falloff for HD crisp particles
     float d = length(uv);
-    float alpha = exp(-d * d * 8.0);
+    float alpha = exp(-d * d * 18.0);
 
     // Warm brightening during warp (hot star trails)
     vec3 color = mix(vColor, vec3(0.95, 0.9, 0.85), vWarp * 0.7);
@@ -259,6 +261,7 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
   const planetScreenPosRef = useRef({ x: 0, y: 0, size: 0, depthFactor: 0 });
   const portfolioBlendRef = useRef(0); // 0 = home layout, 1 = portfolio layout (big ball on left)
   const planetFormRef = useRef(0); // 0 = loose ball, 1 = striped planet form
+  const sectionRef = useRef(section); // Track section for sphere position calc
 
   // Planet click → triggers GSAP warp timeline
   const handlePlanetClick = () => {
@@ -349,7 +352,7 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
     const isMobile = width < 768;
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: !isMobile });
     renderer.setSize(width, height);
-    renderer.setPixelRatio(isMobile ? 1 : Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(isMobile ? Math.min(window.devicePixelRatio, 1.5) : Math.min(window.devicePixelRatio, 2));
     renderer.setClearColor(0x000000, 0);
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
@@ -567,11 +570,26 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
       // Use frozen time for orbital positions during warp so the ball doesn't drift
       const orbitTime = isFlying ? frozenOrbitTimeRef.current : time;
 
-      // Read sphere position from BackgroundElements (shared via window global, no React re-renders)
-      const sp = (window as any).__spherePos;
-      if (sp && particlesRef.current) {
-        const offsetX = sp.x - window.innerWidth / 2;
-        const offsetY = -(sp.y - window.innerHeight / 2);
+      // Sphere position — calculated directly (eliminates BackgroundElements' rAF loop)
+      if (particlesRef.current) {
+        const sec = sectionRef.current;
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        // Match legacy BackgroundElements time scale (0.008/frame vs 0.016/frame)
+        const st = time * 0.5;
+
+        let sx: number, sy: number;
+        if (sec === 'me') {
+          sx = w * 0.25;
+          sy = h * 0.5;
+        } else {
+          const orbitAngle = st * 0.3;
+          sx = w * 0.5 + Math.cos(orbitAngle) * w * 0.4;
+          sy = h * 0.5 + Math.sin(orbitAngle * 0.5) * 20 + Math.sin(st * 0.5) * 32;
+        }
+
+        const offsetX = sx - w / 2;
+        const offsetY = -(sy - h / 2);
         particlesRef.current.position.set(offsetX, offsetY, 0);
         if (planetMeshRef.current) {
           planetMeshRef.current.userData.baseOffsetX = offsetX;
@@ -973,7 +991,8 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
     }
   }, [section]);
 
-  // Position is read from window.__spherePos in the animation loop (no re-renders)
+  // Keep sectionRef in sync for sphere position calculation in animation loop
+  useEffect(() => { sectionRef.current = section; }, [section]);
 
   return (
     <>

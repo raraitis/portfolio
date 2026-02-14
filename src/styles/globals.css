@@ -1,18 +1,28 @@
 @import "tailwindcss";
 
 html {
-  background: #f5f1e8; /* saturn.lightest — prevents white flash on load and overscroll */
+  /* Gradient on html (not body) so it extends into iOS Safari safe areas */
+  background: linear-gradient(135deg,
+    #f5f1e8 0%,
+    #ede4d3 25%,
+    #e8dcc6 50%,
+    #ddd0bb 75%,
+    #d4c4a8 100%
+  );
+  background-attachment: fixed;
   overscroll-behavior: none;
+  min-height: 100svh;
 }
 
 body {
   color: #171717;
-  background: #f5f1e8;
+  background: transparent; /* Transparent so html gradient shows through safe areas */
   font-family: 'Alien Encounters', 'Inter', system-ui, sans-serif;
   overscroll-behavior: none;
   -webkit-overflow-scrolling: touch;
   /* iOS safe area padding so content isn't behind notch/home indicator */
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  min-height: 100svh;
 }
 
 /* Saturn ring animations */

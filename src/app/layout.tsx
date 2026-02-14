@@ -4,7 +4,7 @@ import '../styles/fonts.css';
 import { AnimationProvider } from '@/contexts/AnimationContext';
 import SimpleNavigation from './components/SimpleNavigation';
 import BackgroundElements from './components/BackgroundElements';
-import { styles } from '@/styles';
+import { styles as layoutStyles } from '@/styles';
 import type { Metadata, Viewport } from 'next';
 
 const inter = Inter({
@@ -37,11 +37,10 @@ export default function RootLayout({
   return (
     <html lang='en' className={inter.variable}>
       <body
-        className='min-h-dvh text-gray-900 font-sans antialiased'
-        style={styles.layout.saturnBody}
+        className='min-h-svh text-gray-900 font-sans antialiased'
       >
         {/* Saturn-colored frame border */}
-        <div className='saturn-frame' style={styles.layout.saturnFrame} />
+        <div className='saturn-frame' style={layoutStyles.layout.saturnFrame} />
 
         <AnimationProvider>
           <BackgroundElements />

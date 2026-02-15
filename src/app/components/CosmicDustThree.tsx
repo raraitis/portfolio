@@ -204,9 +204,11 @@ const particleVertexShader = `
       lp.z = sz * pfc;
     }
 
-    // Settling jitter
+    // Settling jitter — peaks mid-transition, fades to zero when fully formed
     if (isMain && pfc > 0.7) {
-      float j = (pfc - 0.7) * 2.0;
+      float jRaw = (pfc - 0.7) * 2.0;
+      float jFade = 1.0 - smoothstep(0.85, 1.0, pfc);
+      float j = jRaw * jFade;
       lp.x += sin(uTime * 3.0 + theta * 100.0) * j;
       lp.y += cos(uTime * 2.5 + phi * 100.0) * j;
     }
@@ -217,7 +219,7 @@ const particleVertexShader = `
     float ss = 0.15 + depth * 1.05;
     float fs = baseSize * ss;
     if (isMain && pfc > 0.001) {
-      fs *= 1.0 + pfc * 0.5;
+      fs *= 1.0 + pfc * 0.2;
       float dn = clamp((lp.z / surfR + 1.0) * 0.5, 0.0, 1.0);
       fs *= mix(1.0, 0.35 + dn * 0.65, pfc);
     }
@@ -248,7 +250,9 @@ const particleVertexShader = `
     vColor = col;
     vec4 mv = modelViewMatrix * vec4(wp, 1.0);
     float fr = mix(3000.0, 8000.0, warp);
-    vAlpha = smoothstep(fr, 0.0, length(wp.xy)) * 0.9;
+    float baseAlpha = smoothstep(fr, 0.0, length(wp.xy)) * 0.45;
+    float ballAlpha = isMain ? mix(1.0, 0.2, pfc) : 0.2;
+    vAlpha = baseAlpha * ballAlpha;
     gl_PointSize = fs * (200.0 / -mv.z) * (1.0 + warp * warp * 14.0);
     gl_Position = projectionMatrix * mv;
   }
@@ -273,6 +277,84 @@ const particleFragmentShader = `
     float d = length(uv);
     float alpha = exp(-d * d * 18.0);
     vec3 color = mix(vColor, vec3(0.95, 0.9, 0.85), vWarp * 0.7);
+    gl_FragColor = vec4(color, alpha * vAlpha);
+  }
+`;
+
+// ============= BACKGROUND STAR FIELD (hyperspeed warp effect) =============
+const STAR_COUNT = 1500;
+
+const starVertexShader = `
+  attribute float aStarSize;
+  attribute float aStarSpeed;  // per-star velocity multiplier
+
+  uniform float uTime;
+  uniform float uWarpProgress;
+  uniform vec2 uWarpCenter;
+
+  varying float vAlpha;
+  varying float vWarp;
+  varying float vRadialAngle;
+
+  void main() {
+    vec3 pos = position;
+    float warp = uWarpProgress;
+
+    // Subtle drift — stars slowly cycle along Y (parallax feel)
+    pos.y = mod(pos.y - uTime * 8.0 * aStarSpeed + 600.0, 1200.0) - 600.0;
+
+    // Warp: radial burst from warp center
+    if (warp > 0.0) {
+      vec2 toStar = pos.xy - uWarpCenter;
+      float dist = length(toStar);
+      float intens = warp * 0.35 + warp * warp * 0.65;
+
+      // Accelerate outward — farther stars move faster (depth illusion)
+      float accel = intens * (3.0 + aStarSpeed * 5.0);
+      pos.xy = uWarpCenter + toStar * (1.0 + accel);
+
+      vRadialAngle = dist > 0.1 ? atan(toStar.y, toStar.x) : 0.0;
+    } else {
+      vRadialAngle = 0.0;
+    }
+
+    vWarp = warp;
+
+    vec4 mv = modelViewMatrix * vec4(pos, 1.0);
+
+    // Stars visible across whole screen, fade at edges
+    vAlpha = mix(0.12, 0.7, warp) * smoothstep(1500.0, 200.0, length(pos.xy));
+
+    float warpSize = 1.0 + warp * warp * 10.0;
+    gl_PointSize = aStarSize * (200.0 / -mv.z) * warpSize;
+    gl_Position = projectionMatrix * mv;
+  }
+`;
+
+const starFragmentShader = `
+  precision mediump float;
+  varying float vAlpha;
+  varying float vWarp;
+  varying float vRadialAngle;
+
+  void main() {
+    vec2 uv = gl_PointCoord - vec2(0.5);
+
+    // Streak during warp
+    if (vWarp > 0.01) {
+      float c = cos(vRadialAngle);
+      float s = sin(vRadialAngle);
+      vec2 rotUv = vec2(uv.x * c - uv.y * s, uv.x * s + uv.y * c);
+      rotUv.y *= mix(1.0, 12.0, vWarp * vWarp);
+      uv = rotUv;
+    }
+
+    float d = length(uv);
+    float alpha = exp(-d * d * 22.0);
+
+    // Cool white → warm during warp
+    vec3 color = mix(vec3(0.6, 0.6, 0.55), vec3(0.95, 0.9, 0.8), vWarp * 0.8);
+
     gl_FragColor = vec4(color, alpha * vAlpha);
   }
 `;
@@ -502,6 +584,44 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
     planetMaterialRef.current = planetMaterial;
     scene.add(planetMesh);
 
+    // ============= BACKGROUND STAR FIELD =============
+    const starCount = isMobile ? Math.floor(STAR_COUNT * 0.5) : STAR_COUNT;
+    const starGeo = new THREE.BufferGeometry();
+    const starPositions = new Float32Array(starCount * 3);
+    const starSizes = new Float32Array(starCount);
+    const starSpeeds = new Float32Array(starCount);
+
+    for (let i = 0; i < starCount; i++) {
+      // Spread stars across a wide area (wider than particle balls)
+      starPositions[i * 3] = (Math.random() - 0.5) * 2400;
+      starPositions[i * 3 + 1] = (Math.random() - 0.5) * 1200;
+      starPositions[i * 3 + 2] = -50 + Math.random() * -200; // behind particles
+      starSizes[i] = 1.5 + Math.random() * 3.5;
+      starSpeeds[i] = 0.3 + Math.random() * 0.7;
+    }
+
+    starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+    starGeo.setAttribute('aStarSize', new THREE.BufferAttribute(starSizes, 1));
+    starGeo.setAttribute('aStarSpeed', new THREE.BufferAttribute(starSpeeds, 1));
+
+    const starMaterial = new THREE.ShaderMaterial({
+      vertexShader: starVertexShader,
+      fragmentShader: starFragmentShader,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      uniforms: {
+        uTime: { value: 0 },
+        uWarpProgress: { value: 0 },
+        uWarpCenter: { value: new THREE.Vector2() },
+      },
+    });
+
+    const starField = new THREE.Points(starGeo, starMaterial);
+    starField.frustumCulled = false;
+    starField.renderOrder = -1; // render behind particle balls
+    scene.add(starField);
+
     // Adaptive quality
     let drawRange = totalParticles;
     const minDrawRange = Math.floor(totalParticles * 0.5);
@@ -604,6 +724,10 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
       u.uPlanetSpin.value.set(Math.cos(planetSpin), Math.sin(planetSpin));
       u.uBallDepth.value.set(mainDepth, childDepth);
 
+      // Sync star field uniforms
+      starMaterial.uniforms.uTime.value = time;
+      starMaterial.uniforms.uWarpProgress.value = u.uWarpProgress.value;
+
       // Warp center = planet position
       const pTheta = planetMesh.userData.planetTheta;
       const pPhi = planetMesh.userData.planetPhi;
@@ -615,6 +739,9 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
         mainBall.centerX + Math.cos(pCurTheta) * Math.sin(pPhi) * pDist,
         mainBall.centerY + Math.cos(pPhi) * pDist
       );
+
+      // Star warp center matches particle warp center (planet position + screen offset)
+      starMaterial.uniforms.uWarpCenter.value.copy(u.uWarpCenter.value);
 
       // Update planet mesh
       const sinPPhi = Math.sin(pPhi), cosPPhi = Math.cos(pPhi);
@@ -697,6 +824,8 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
       window.removeEventListener('resize', handleResize);
       geometry.dispose();
       material.dispose();
+      starGeo.dispose();
+      starMaterial.dispose();
       planetGeometry.dispose();
       planetMaterial.dispose();
       scene.clear();

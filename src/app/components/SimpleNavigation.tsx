@@ -36,11 +36,12 @@ const SimpleNavigation = () => {
   const visibleItems = getVisibleNavItems();
 
   return (
-    <div className='fixed top-4 right-4 sm:top-16 sm:right-20 z-50'>
+    <nav aria-label='Main navigation' className='fixed top-4 right-4 sm:top-16 sm:right-20 z-50'>
       {/* Saturn-like rings container */}
       <div className='relative'>
         {/* Outer ring - smaller on mobile to prevent overflow */}
         <div
+          aria-hidden='true'
           className='absolute inset-0 -m-5 sm:-m-12 rounded-full border border-gray-300/15 animate-spin-slow pointer-events-none'
           style={{
             width: 'calc(100% + 2.5rem)',
@@ -54,6 +55,7 @@ const SimpleNavigation = () => {
 
         {/* Middle ring */}
         <div
+          aria-hidden='true'
           className='absolute inset-0 -m-3 sm:-m-8 rounded-full border border-gray-400/20 animate-spin-slow pointer-events-none'
           style={{
             width: 'calc(100% + 1.5rem)',
@@ -68,6 +70,7 @@ const SimpleNavigation = () => {
 
         {/* Inner ring */}
         <div
+          aria-hidden='true'
           className='absolute inset-0 -m-2 sm:-m-6 rounded-full border border-gray-500/25 animate-spin-slow pointer-events-none'
           style={{
             width: 'calc(100% + 1rem)',
@@ -91,6 +94,8 @@ const SimpleNavigation = () => {
                   handleNavigate(item.section);
                 }
               }}
+              aria-label={`Navigate to ${item.word.toLowerCase()} section`}
+              aria-current={currentSection === item.section ? 'page' : undefined}
               className='text-xs sm:text-base tracking-wide text-gray-600 hover:text-gray-800 active:text-gray-900 transition-colors select-none font-alien bg-transparent border-none cursor-pointer py-3 px-2 min-h-[44px] min-w-[44px]'
             >
               {item.word}
@@ -98,7 +103,7 @@ const SimpleNavigation = () => {
           ))}
         </div>
       </div>
-    </div>
+    </nav>
   );
 };
 

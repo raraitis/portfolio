@@ -10,20 +10,21 @@ import { on, emit, type SectionName } from '@/lib/events';
 // ME Section Component
 const MeSection = () => {
   return (
-    <m.div
+    <m.section
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
       className='min-h-dvh relative z-10 flex items-center justify-center sm:justify-end px-5 sm:px-12 lg:pr-20'
+      aria-labelledby='about-heading'
     >
       <div className='max-w-full sm:max-w-2xl w-full py-16 sm:py-20'>
         {/* About Section */}
-        <div className='mb-6 sm:mb-16'>
-          <h1 className='text-3xl sm:text-5xl md:text-6xl font-light text-gray-900 mb-3 sm:mb-8 text-center sm:text-left'>
+        <header className='mb-6 sm:mb-16'>
+          <h1 id='about-heading' className='text-3xl sm:text-5xl md:text-6xl font-light text-gray-900 mb-3 sm:mb-8 text-center sm:text-left'>
             Me
           </h1>
-        </div>
+        </header>
 
         <div className='text-center sm:text-left mb-8 sm:mb-20'>
           <p
@@ -66,32 +67,35 @@ const MeSection = () => {
         </div>
 
         {/* Contact Section */}
-        <div className='text-center sm:text-left'>
+        <address className='text-center sm:text-left not-italic'>
           <div className='flex items-center justify-center sm:justify-start gap-1 sm:gap-4'>
             <a
               href='mailto:raraitis@gmail.com'
+              aria-label='Send email to Raitis Kraslovskis'
               className='text-gray-500 hover:text-black active:text-black transition-colors font-alien text-sm sm:text-base tracking-wider py-3 px-3 min-h-[44px] inline-flex items-center'
             >
               EMAIL
             </a>
-            <span className='text-gray-300 font-light select-none'>|</span>
+            <span className='text-gray-300 font-light select-none' aria-hidden='true'>|</span>
             <a
               href='tel:+37126351731'
+              aria-label='Call Raitis Kraslovskis'
               className='text-gray-500 hover:text-black active:text-black transition-colors font-alien text-sm sm:text-base tracking-wider py-3 px-3 min-h-[44px] inline-flex items-center'
             >
               PHONE
             </a>
-            <span className='text-gray-300 font-light select-none'>|</span>
+            <span className='text-gray-300 font-light select-none' aria-hidden='true'>|</span>
             <button
               onClick={() => emit('warp-trigger')}
+              aria-label='View portfolio projects'
               className='text-gray-500 hover:text-black active:text-black transition-colors font-alien text-sm sm:text-base tracking-wider py-3 px-3 min-h-[44px] inline-flex items-center bg-transparent border-none cursor-pointer'
             >
               PORTFOLIO
             </button>
           </div>
-        </div>
+        </address>
       </div>
-    </m.div>
+    </m.section>
   );
 };
 

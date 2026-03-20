@@ -13,7 +13,7 @@ const PORTFOLIO_ITEMS: PortfolioItem[] = [
   {
     title: 'Monitec',
     url: 'https://monitec.lv',
-    description: 'Technical inspection platform',
+    description: '',
   },
   {
     title: 'Lauku Karte',
@@ -21,8 +21,18 @@ const PORTFOLIO_ITEMS: PortfolioItem[] = [
     description: '',
   },
   {
-    title: 'Pilsunu Muizas',
+    title: 'Pilis un Muizas',
     url: 'https://pilisunmuizas.lv',
+    description: '',
+  },
+  {
+    title: 'Bruklene',
+    url: 'https://bruklene.cc',
+    description: '',
+  },
+  {
+    title: 'Koud Studio',
+    url: 'https://koudstudio.com',
     description: '',
   },
   {

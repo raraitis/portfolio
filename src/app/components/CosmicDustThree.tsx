@@ -47,22 +47,56 @@ const BALLS: BallConfig[] = [
     parentId: null,
   },
   {
-    id: 'child-ball',
-    color: { r: 0.6, g: 0.45, b: 0.3 },
-    particleCount: 4000,
-    radius: 120,
-    orbitRadius: 400,
-    orbitEccentricity: 0.3,
-    orbitTilt: 0.4,
-    orbitPhaseOffset: Math.PI * 0.3,
-    orbitSpeed: 0.4,
-    spinSpeed: 0.25,
-    swirlSpeed: 0.12,
-    chaoticRatio: 0.25,
+    id: 'main-ball-2',
+    color: { r: 0.38, g: 0.32, b: 0.18 }, // muted gold/bronze, same palette
+    particleCount: 18000,
+    radius: 300,
+    orbitRadius: 300,
+    orbitEccentricity: 0.4,
+    orbitTilt: 2.1, // totally different angle
+    orbitPhaseOffset: Math.PI * 1.7, // totally different phase
+    orbitSpeed: 0.3,
+    spinSpeed: 0.15,
+    swirlSpeed: 0.08,
+    chaoticRatio: 0.3,
     chaoticSpeedMin: 0.05,
-    chaoticSpeedMax: 0.4,
-    parentId: 'main-ball',
+    chaoticSpeedMax: 0.3,
+    parentId: null,
   },
+  {
+    id: 'main-ball-3',
+    color: { r: 0.18, g: 0.32, b: 0.28 }, // teal/greenish, same palette
+    particleCount: 18000,
+    radius: 300,
+    orbitRadius: 300,
+    orbitEccentricity: 0.4,
+    orbitTilt: 1.3, // another unique angle
+    orbitPhaseOffset: Math.PI * 0.2, // another unique phase
+    orbitSpeed: 0.3,
+    spinSpeed: 0.15,
+    swirlSpeed: 0.08,
+    chaoticRatio: 0.3,
+    chaoticSpeedMin: 0.05,
+    chaoticSpeedMax: 0.3,
+    parentId: null,
+  },
+  // {
+  //   id: 'child-ball',
+  //   color: { r: 0.6, g: 0.45, b: 0.3 },
+  //   particleCount: 4000,
+  //   radius: 120,
+  //   orbitRadius: 400,
+  //   orbitEccentricity: 0.3,
+  //   orbitTilt: 0.4,
+  //   orbitPhaseOffset: Math.PI * 0.3,
+  //   orbitSpeed: 0.4,
+  //   spinSpeed: 0.25,
+  //   swirlSpeed: 0.12,
+  //   chaoticRatio: 0.25,
+  //   chaoticSpeedMin: 0.05,
+  //   chaoticSpeedMax: 0.4,
+  //   parentId: 'main-ball',
+  // },
 ];
 
 const BALL_ORBIT = new Map(BALLS.map(c => [c.id, {
@@ -116,12 +150,14 @@ const particleVertexShader = `
   uniform float uTime;
   uniform vec3 uBall0Center;
   uniform vec3 uBall1Center;
-  uniform vec2 uBall0Spin;       // spinSpeed, swirlSpeed
+  uniform vec3 uBall2Center;
+  uniform vec2 uBall0Spin;
   uniform vec2 uBall1Spin;
+  uniform vec2 uBall2Spin;
   uniform float uSectionScale;
   uniform float uPlanetForm;
-  uniform vec2 uPlanetSpin;      // cos, sin of planet rotation
-  uniform vec2 uBallDepth;       // ball0, ball1 depth factors
+  uniform vec2 uPlanetSpin;
+  uniform vec3 uBallDepth;
   uniform float uWarpProgress;
   uniform vec2 uWarpCenter;
 
@@ -142,16 +178,35 @@ const particleVertexShader = `
     float ballIdx = aChaoticCenter.z;
     float baseSize = aChaoticCenter.w;
 
-    bool isMain = ballIdx < 0.5;
-    vec3 center = isMain ? uBall0Center : uBall1Center;
-    vec2 spin = isMain ? uBall0Spin : uBall1Spin;
-    float depth = isMain ? uBallDepth.x : uBallDepth.y;
-    float ballR = isMain ? ${BALLS[0].radius.toFixed(1)} : ${BALLS[1].radius.toFixed(1)};
-    float dScale = isMain ? uSectionScale : 1.0;
-    float surfR = ballR * uSectionScale;
+    vec3 center;
+    vec2 spin;
+    float depth;
+    float ballR;
+    float dScale = 1.0;
+    float surfR;
+    float pfRaw = 0.0;
+    if (ballIdx < 0.5) {
+      center = uBall0Center;
+      spin = uBall0Spin;
+      depth = uBallDepth.x;
+      ballR = ${BALLS[0].radius.toFixed(1)};
+      dScale = uSectionScale;
+      surfR = ballR * uSectionScale;
+      pfRaw = uPlanetForm;
+    } else if (ballIdx < 1.5) {
+      center = uBall1Center;
+      spin = uBall1Spin;
+      depth = uBallDepth.y;
+      ballR = ${BALLS[1].radius.toFixed(1)};
+      surfR = ballR;
+    } else {
+      center = uBall2Center;
+      spin = uBall2Spin;
+      depth = uBallDepth.z;
+      ballR = ${BALLS[2].radius.toFixed(1)};
+      surfR = ballR;
+    }
 
-    // Per-particle staggered planet formation
-    float pfRaw = isMain ? uPlanetForm : 0.0;
     float pfc = 0.0;
     if (pfRaw > 0.0) {
       float del = aFormation.z;
@@ -164,11 +219,11 @@ const particleVertexShader = `
 
     if (isChaotic > 0.5) {
       float cAngle = aChaoticParams.z + aChaoticParams.y * uTime;
-      float cScale = (isMain && pfc > 0.001) ? (1.0 - pfc * 0.8) : 1.0;
+      float cScale = (ballIdx < 0.5 && pfc > 0.001) ? (1.0 - pfc * 0.8) : 1.0;
       float ox = cos(cAngle) * aChaoticParams.x * cScale;
       float oy = sin(cAngle) * aChaoticParams.x * cScale;
 
-      if (isMain && pfc > 0.001) {
+      if (ballIdx < 0.5 && pfc > 0.001) {
         float cx = aChaoticCenter.x + ox;
         float cy = aChaoticCenter.y + oy;
         float cd = max(length(vec2(cx, cy)), 1.0);
@@ -184,7 +239,7 @@ const particleVertexShader = `
       float ct = theta + uTime * spin.x + uTime * spin.y * speed;
       float ep = phi;
       float ed = dist * dScale;
-      if (isMain && pfc > 0.001) {
+      if (ballIdx < 0.5 && pfc > 0.001) {
         ed = mix(ed, fuzzy, pfc);
         ep = mix(phi, aFormation.y, pfc);
       }
@@ -193,8 +248,8 @@ const particleVertexShader = `
       lp = vec3(cos(ct) * sp * ed, cp * ed, sin(ct) * sp * ed * pfc);
     }
 
-    // 3D tilt + spin rotation during planet formation
-    if (isMain && pfc > 0.01) {
+    // 3D tilt + spin rotation during planet formation (only for main ball)
+    if (ballIdx < 0.5 && pfc > 0.01) {
       float ty = lp.y * TILT_COS - lp.z * TILT_SIN;
       float tz = lp.y * TILT_SIN + lp.z * TILT_COS;
       float sx = lp.x * uPlanetSpin.x - tz * uPlanetSpin.y;
@@ -204,8 +259,8 @@ const particleVertexShader = `
       lp.z = sz * pfc;
     }
 
-    // Settling jitter — peaks mid-transition, fades to zero when fully formed
-    if (isMain && pfc > 0.7) {
+    // Settling jitter — peaks mid-transition, fades to zero when fully formed (main ball only)
+    if (ballIdx < 0.5 && pfc > 0.7) {
       float jRaw = (pfc - 0.7) * 2.0;
       float jFade = 1.0 - smoothstep(0.85, 1.0, pfc);
       float j = jRaw * jFade;
@@ -218,15 +273,15 @@ const particleVertexShader = `
     // Size: depth + formation effects
     float ss = 0.15 + depth * 1.05;
     float fs = baseSize * ss;
-    if (isMain && pfc > 0.001) {
+    if (ballIdx < 0.5 && pfc > 0.001) {
       fs *= 1.0 + pfc * 0.2;
       float dn = clamp((lp.z / surfR + 1.0) * 0.5, 0.0, 1.0);
       fs *= mix(1.0, 0.35 + dn * 0.65, pfc);
     }
 
-    // Color: base → stripe/fill during formation
+    // Color: base → stripe/fill during formation (main ball only)
     vec3 col = aBaseColor;
-    if (isMain && pfc > 0.001) {
+    if (ballIdx < 0.5 && pfc > 0.001) {
       float dn = clamp((lp.z / surfR + 1.0) * 0.5, 0.0, 1.0);
       float ds = 0.65 + dn * 0.35;
       vec3 tc = aFormation.w > 0.5 ? vec3(0.13, 0.15, 0.12) * ds : vec3(0.38, 0.40, 0.36) * ds;
@@ -251,7 +306,7 @@ const particleVertexShader = `
     vec4 mv = modelViewMatrix * vec4(wp, 1.0);
     float fr = mix(3000.0, 8000.0, warp);
     float baseAlpha = smoothstep(fr, 0.0, length(wp.xy)) * 0.45;
-    float ballAlpha = isMain ? mix(1.0, 0.2, pfc) : 0.2;
+    float ballAlpha = ballIdx < 0.5 ? mix(1.0, 0.2, pfc) : 0.2;
     vAlpha = baseAlpha * ballAlpha;
     gl_PointSize = fs * (200.0 / -mv.z) * (1.0 + warp * warp * 14.0);
     gl_Position = projectionMatrix * mv;
@@ -545,12 +600,14 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
         uTime: { value: 0 },
         uBall0Center: { value: new THREE.Vector3() },
         uBall1Center: { value: new THREE.Vector3() },
+        uBall2Center: { value: new THREE.Vector3() },
         uBall0Spin: { value: new THREE.Vector2(BALLS[0].spinSpeed, BALLS[0].swirlSpeed) },
         uBall1Spin: { value: new THREE.Vector2(BALLS[1].spinSpeed, BALLS[1].swirlSpeed) },
+        uBall2Spin: { value: new THREE.Vector2(BALLS[2].spinSpeed, BALLS[2].swirlSpeed) },
         uSectionScale: { value: 1 },
         uPlanetForm: { value: 0 },
         uPlanetSpin: { value: new THREE.Vector2(1, 0) },
-        uBallDepth: { value: new THREE.Vector2(0.5, 0.5) },
+        uBallDepth: { value: new THREE.Vector3(0.5, 0.5, 0.5) },
         uWarpProgress: { value: 0 },
         uWarpCenter: { value: new THREE.Vector2() },
       },
@@ -561,7 +618,8 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
     particlesRef.current = particles;
     scene.add(particles);
 
-    // Striped planet sphere
+    // Striped planet spheres
+    // Main ball planet
     const mainBallConfig = BALLS[0];
     const planetRadius = mainBallConfig.radius * 0.12;
     const planetGeometry = new THREE.SphereGeometry(planetRadius, 48, 32);
@@ -583,6 +641,27 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
     planetMeshRef.current = planetMesh;
     planetMaterialRef.current = planetMaterial;
     scene.add(planetMesh);
+
+    // Third ball planet
+    const thirdBallConfig = BALLS[2];
+    const planet3Radius = thirdBallConfig.radius * 0.12;
+    const planet3Geometry = new THREE.SphereGeometry(planet3Radius, 48, 32);
+    const planet3Material = new THREE.ShaderMaterial({
+      vertexShader: planetVertexShader,
+      fragmentShader: planetFragmentShader,
+      transparent: true,
+      depthWrite: false,
+      side: THREE.FrontSide,
+      uniforms: {
+        uOpacity: { value: 0.3 },
+        uColor: { value: new THREE.Vector3(0.13, 0.28, 0.22) }, // match third ball color palette
+      },
+    });
+    const planet3Mesh = new THREE.Mesh(planet3Geometry, planet3Material);
+    planet3Mesh.userData.planetTheta = 1.7;
+    planet3Mesh.userData.planetPhi = 1.25;
+    planet3Mesh.userData.planetDist = thirdBallConfig.radius * 0.55;
+    scene.add(planet3Mesh);
 
     // ============= BACKGROUND STAR FIELD =============
     const starCount = isMobile ? Math.floor(STAR_COUNT * 0.5) : STAR_COUNT;
@@ -635,9 +714,11 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
     let time = 0;
     let lastTimestamp = 0;
     const mainBall = ballRuntimes[0];
-    const childBall = ballRuntimes[1];
+    const secondBall = ballRuntimes[1];
+    const thirdBall = ballRuntimes[2];
     const mainOC = BALL_ORBIT.get(mainBall.config.id)!;
-    const childOC = BALL_ORBIT.get(childBall.config.id)!;
+    const secondOC = BALL_ORBIT.get(secondBall.config.id)!;
+    const thirdOC = BALL_ORBIT.get(thirdBall.config.id)!;
     const u = material.uniforms;
 
     const animate = (timestamp: number) => {
@@ -682,11 +763,11 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
 
       // Ball centers
       const blend = portfolioBlendRef.current;
+      // Main ball
       const mainOrbit = orbitTime * mainBall.config.orbitSpeed + mainBall.config.orbitPhaseOffset;
       const flatX = Math.cos(mainOrbit) * mainBall.config.orbitRadius;
       const flatY = Math.sin(mainOrbit) * mainOC.orbitB;
       const homeX = flatX, homeY = flatY * mainOC.tiltCos, homeZ = flatY * mainOC.tiltSin;
-
       if (blend > 0.001) {
         const px = -cachedW * 0.25 + Math.cos(time * 0.05) * 30;
         const py = Math.sin(time * 0.08) * 20;
@@ -697,32 +778,40 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
         mainBall.centerX = homeX; mainBall.centerY = homeY; mainBall.centerZ = homeZ;
       }
 
-      const childOrbit = orbitTime * childBall.config.orbitSpeed + childBall.config.orbitPhaseOffset;
-      const cOrbitX = Math.cos(childOrbit) * childBall.config.orbitRadius;
-      const cOrbitZ = Math.sin(childOrbit) * childOC.orbitB;
-      childBall.centerX = mainBall.centerX + cOrbitX;
-      childBall.centerY = mainBall.centerY + cOrbitZ * childOC.tiltSin;
-      childBall.centerZ = mainBall.centerZ + cOrbitZ * childOC.tiltCos;
-      if (blend > 0.001) {
-        childBall.centerX = childBall.centerX * (1 - blend) + (-5000) * blend;
-        childBall.centerY = childBall.centerY * (1 - blend) + (-5000) * blend;
-      }
+      // Second ball
+      const secondOrbit = orbitTime * secondBall.config.orbitSpeed + secondBall.config.orbitPhaseOffset;
+      const sFlatX = Math.cos(secondOrbit) * secondBall.config.orbitRadius;
+      const sFlatY = Math.sin(secondOrbit) * secondOC.orbitB;
+      secondBall.centerX = sFlatX;
+      secondBall.centerY = sFlatY * secondOC.tiltCos;
+      secondBall.centerZ = sFlatY * secondOC.tiltSin;
+
+      // Third ball
+      const thirdOrbit = orbitTime * thirdBall.config.orbitSpeed + thirdBall.config.orbitPhaseOffset;
+      const tFlatX = Math.cos(thirdOrbit) * thirdBall.config.orbitRadius;
+      const tFlatY = Math.sin(thirdOrbit) * thirdOC.orbitB;
+      thirdBall.centerX = tFlatX;
+      thirdBall.centerY = tFlatY * thirdOC.tiltCos;
+      thirdBall.centerZ = tFlatY * thirdOC.tiltSin;
 
       // Depth factors
       const mainMaxZ = mainBall.config.orbitRadius + 100;
       const mainDepth = Math.max(0, Math.min(1, (mainBall.centerZ + mainMaxZ) / (mainMaxZ * 2)));
-      const childMaxZ = childBall.config.orbitRadius + mainBall.config.orbitRadius + 100;
-      const childDepth = Math.max(0, Math.min(1, (childBall.centerZ + childMaxZ) / (childMaxZ * 2)));
+      const secondMaxZ = secondBall.config.orbitRadius + 100;
+      const secondDepth = Math.max(0, Math.min(1, (secondBall.centerZ + secondMaxZ) / (secondMaxZ * 2)));
+      const thirdMaxZ = thirdBall.config.orbitRadius + 100;
+      const thirdDepth = Math.max(0, Math.min(1, (thirdBall.centerZ + thirdMaxZ) / (thirdMaxZ * 2)));
 
-      // Update uniforms (replaces 352KB buffer uploads with ~20 floats)
+      // Update uniforms
       u.uTime.value = time;
       u.uBall0Center.value.set(mainBall.centerX, mainBall.centerY, mainBall.centerZ);
-      u.uBall1Center.value.set(childBall.centerX, childBall.centerY, childBall.centerZ);
+      u.uBall1Center.value.set(secondBall.centerX, secondBall.centerY, secondBall.centerZ);
+      u.uBall2Center.value.set(thirdBall.centerX, thirdBall.centerY, thirdBall.centerZ);
       u.uSectionScale.value = 1 + blend;
       u.uPlanetForm.value = planetFormRef.current;
       const planetSpin = time * 0.12;
       u.uPlanetSpin.value.set(Math.cos(planetSpin), Math.sin(planetSpin));
-      u.uBallDepth.value.set(mainDepth, childDepth);
+      u.uBallDepth.value.set(mainDepth, secondDepth, thirdDepth);
 
       // Sync star field uniforms
       starMaterial.uniforms.uTime.value = time;
@@ -743,7 +832,8 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
       // Star warp center matches particle warp center (planet position + screen offset)
       starMaterial.uniforms.uWarpCenter.value.copy(u.uWarpCenter.value);
 
-      // Update planet mesh
+
+      // Update planet mesh (main ball)
       const sinPPhi = Math.sin(pPhi), cosPPhi = Math.cos(pPhi);
       const pLocalX = Math.cos(pCurTheta) * sinPPhi * pDist;
       const pLocalY = cosPPhi * pDist;
@@ -773,6 +863,36 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
         planetMaterialRef.current.uniforms.uOpacity.value = depthOpacity * warpFade * portfolioFade;
         planetMesh.scale.setScalar(depthScale * pulse * warpGrow);
       }
+
+      // Update planet mesh (third ball)
+      const p3Theta = planet3Mesh.userData.planetTheta;
+      const p3Phi = planet3Mesh.userData.planetPhi;
+      const p3Dist = planet3Mesh.userData.planetDist;
+      const p3SpinTime = isFlying ? frozenOrbitTimeRef.current : time;
+      const p3CurTheta = p3Theta + p3SpinTime * thirdBall.config.spinSpeed;
+      const sinP3Phi = Math.sin(p3Phi), cosP3Phi = Math.cos(p3Phi);
+      const p3LocalX = Math.cos(p3CurTheta) * sinP3Phi * p3Dist;
+      const p3LocalY = cosP3Phi * p3Dist;
+      const p3LocalZ = Math.sin(p3CurTheta) * sinP3Phi * p3Dist;
+
+      planet3Mesh.position.set(
+        thirdBall.centerX + offsetX + p3LocalX,
+        thirdBall.centerY + offsetY + p3LocalY,
+        p3LocalZ
+      );
+      planet3Mesh.rotation.y = time * thirdBall.config.spinSpeed * 1.5;
+      planet3Mesh.rotation.x = 0.15;
+
+      const p3Config = thirdBall.config;
+      const p3MaxZ = p3Config.orbitRadius + p3Config.radius + 100;
+      const p3CombinedZ = thirdBall.centerZ + p3LocalZ;
+      const p3DepthFactor = Math.max(0, Math.min(1, (p3CombinedZ + p3MaxZ) / (p3MaxZ * 2)));
+      const p3DepthOpacity = 0.05 + p3DepthFactor * 0.3;
+      const p3DepthScale = 0.2 + p3DepthFactor * 0.8;
+      const p3Pulse = isFlying ? 1 : (1 + Math.sin(time * 1.5 + 1.5) * 0.03);
+
+      planet3Material.uniforms.uOpacity.value = p3DepthOpacity;
+      planet3Mesh.scale.setScalar(p3DepthScale * p3Pulse);
 
       // Click target tracking
       const screenX = (mainBall.centerX + offsetX + pLocalX) + cachedW / 2;

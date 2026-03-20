@@ -1,10 +1,13 @@
 import { Inter } from 'next/font/google';
+import { GoogleAnalytics } from '@next/third-parties/google';
 import '../styles/globals.css';
 import '../styles/fonts.css';
 import SimpleNavigation from './components/SimpleNavigation';
 import BackgroundElements from './components/BackgroundElements';
 import { styles as layoutStyles } from '@/styles';
 import type { Metadata, Viewport } from 'next';
+
+const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || 'G-7YBC9YN1V1';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -241,6 +244,7 @@ export default function RootLayout({
             <p>Contact: <a href='mailto:raraitis@gmail.com'>raraitis@gmail.com</a> | <a href='tel:+37126351731'>+371 2635 1731</a></p>
           </div>
         </noscript>
+        {GA_ID && <GoogleAnalytics gaId={GA_ID} />}
       </body>
     </html>
   );

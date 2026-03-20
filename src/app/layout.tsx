@@ -7,7 +7,7 @@ import BackgroundElements from './components/BackgroundElements';
 import { styles as layoutStyles } from '@/styles';
 import type { Metadata, Viewport } from 'next';
 
-const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || 'G-7YBC9YN1V1';
+const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || 'G-46WR46LP2T';
 
 const inter = Inter({
   subsets: ['latin'],

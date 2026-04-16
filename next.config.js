@@ -25,6 +25,8 @@ const nextConfig = {
         source: '/(.*)',
         headers: [
           // Content Security Policy
+          // Note: 'unsafe-eval' required by Three.js WebGL shader compilation (used in CosmicDustThree.tsx).
+          // 'unsafe-inline' required for Next.js inline scripts and styled-jsx.
           {
             key: 'Content-Security-Policy',
             value:

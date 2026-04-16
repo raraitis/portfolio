@@ -56,10 +56,15 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
   // Choose appropriate text styles based on device type
   const currentTextStyles = device.isMobile ? nameTextMobile : nameText;
 
-  // Gravitational influence effect disabled for better performance in fixed position
-  // useEffect(() => {
-  //   // Gravitational effects disabled when name is in fixed top-left position
-  // }, []);
+  const scatterTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const reassembleTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    return () => {
+      if (scatterTimeoutRef.current) clearTimeout(scatterTimeoutRef.current);
+      if (reassembleTimeoutRef.current) clearTimeout(reassembleTimeoutRef.current);
+    };
+  }, []);
 
   const bind = useDrag(
     ({ active, movement: [mx, my], offset: [ox, oy], velocity: [vx, vy] }) => {
@@ -89,7 +94,7 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
 
         // Scatter when word has dropped about 60% of the way - so you see the drop AND the scatter
         const scatterDelay = Math.max(100, Math.min(400, dropDistance * 2)); // Proportional to drop distance
-        setTimeout(() => {
+        scatterTimeoutRef.current = setTimeout(() => {
           scatterWord(ox, oy + dropDistance * 0.6); // Scatter from 60% down position
         }, scatterDelay);
 
@@ -129,7 +134,7 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
     setScatteredLetters(letters);
 
     // Reduced delay - magnet reassembly starts faster
-    setTimeout(() => {
+    reassembleTimeoutRef.current = setTimeout(() => {
       setIsScattered(false);
       setScatteredLetters([]);
 
@@ -202,11 +207,6 @@ const ScatteredLetter = React.memo(({
 }: ScatteredLetterProps) => {
   const [currentX, setCurrentX] = useState(x);
   const [currentY, setCurrentY] = useState(y);
-
-  // Gravitational influence disabled for performance - scattered letters remain static
-  // useEffect(() => {
-  //   // Gravitational effects disabled to prevent infinite re-render loops
-  // }, []);
 
   const {
     x: springX,

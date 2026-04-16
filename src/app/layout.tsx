@@ -16,6 +16,8 @@ const inter = Inter({
 
 const SITE_URL = 'https://raitiskraslovskis.com';
 const SITE_NAME = 'Raitis Kraslovskis';
+const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL || 'raraitis@gmail.com';
+const CONTACT_PHONE = process.env.NEXT_PUBLIC_CONTACT_PHONE || '+37126351731';
 const SITE_TITLE = 'Raitis Kraslovskis — Full-Stack Developer & Creative Technologist';
 const SITE_DESCRIPTION =
   'Portfolio of Raitis Kraslovskis — full-stack developer specializing in modern web applications, interactive experiences, and creative technology. Based in Latvia.';
@@ -138,8 +140,8 @@ function JsonLd() {
     '@type': 'Person',
     name: 'Raitis Kraslovskis',
     url: SITE_URL,
-    email: 'raraitis@gmail.com',
-    telephone: '+37126351731',
+    email: CONTACT_EMAIL,
+    telephone: CONTACT_PHONE,
     jobTitle: 'Full-Stack Developer',
     description: SITE_DESCRIPTION,
     knowsAbout: [
@@ -241,7 +243,7 @@ export default function RootLayout({
               Portfolio of Raitis Kraslovskis — full-stack developer specializing in
               modern web applications, interactive experiences, and creative technology.
             </p>
-            <p>Contact: <a href='mailto:raraitis@gmail.com'>raraitis@gmail.com</a> | <a href='tel:+37126351731'>+371 2635 1731</a></p>
+            <p>Contact: <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> | <a href={`tel:${CONTACT_PHONE}`}>{CONTACT_PHONE}</a></p>
           </div>
         </noscript>
         {GA_ID && <GoogleAnalytics gaId={GA_ID} />}

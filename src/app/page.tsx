@@ -7,6 +7,9 @@ import PortfolioSection from './components/PortfolioSection';
 import GameSection from './components/GameSection';
 import { on, emit, type SectionName } from '@/lib/events';
 
+const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL || 'raraitis@gmail.com';
+const CONTACT_PHONE = process.env.NEXT_PUBLIC_CONTACT_PHONE || '+37126351731';
+
 // ME Section Component
 const MeSection = () => {
   return (
@@ -70,7 +73,7 @@ const MeSection = () => {
         <address className='text-center sm:text-left not-italic'>
           <div className='flex items-center justify-center sm:justify-start gap-1 sm:gap-4'>
             <a
-              href='mailto:raraitis@gmail.com'
+              href={`mailto:${CONTACT_EMAIL}`}
               aria-label='Send email to Raitis Kraslovskis'
               className='text-gray-500 hover:text-black active:text-black transition-colors font-alien text-sm sm:text-base tracking-wider py-3 px-3 min-h-[44px] inline-flex items-center'
             >
@@ -78,7 +81,7 @@ const MeSection = () => {
             </a>
             <span className='text-gray-300 font-light select-none' aria-hidden='true'>|</span>
             <a
-              href='tel:+37126351731'
+              href={`tel:${CONTACT_PHONE}`}
               aria-label='Call Raitis Kraslovskis'
               className='text-gray-500 hover:text-black active:text-black transition-colors font-alien text-sm sm:text-base tracking-wider py-3 px-3 min-h-[44px] inline-flex items-center'
             >
@@ -109,7 +112,10 @@ export default function HomePage() {
     emit('section-changed', section);
   }, []);
 
-  useEffect(() => on('navigate', navigateToSection), [navigateToSection]);
+  useEffect(() => {
+    const unsub = on('navigate', navigateToSection);
+    return unsub;
+  }, [navigateToSection]);
 
   const renderSection = () => {
     switch (currentSection) {

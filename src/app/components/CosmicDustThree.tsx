@@ -948,6 +948,8 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
       starMaterial.dispose();
       planetGeometry.dispose();
       planetMaterial.dispose();
+      planet3Geometry.dispose();
+      planet3Material.dispose();
       scene.clear();
       if (rendererRef.current && container) {
         container.removeChild(rendererRef.current.domElement);
@@ -957,7 +959,10 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
     };
   }, []);
 
-  useEffect(() => on('warp-trigger', handlePlanetClick), []);
+  useEffect(() => {
+    const unsub = on('warp-trigger', handlePlanetClick);
+    return unsub;
+  }, []);
 
   useEffect(() => {
     if (section !== 'portfolio' && portfolioBlendRef.current > 0) {

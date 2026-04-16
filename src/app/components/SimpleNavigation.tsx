@@ -6,7 +6,10 @@ import { on, emit, type SectionName } from '@/lib/events';
 const SimpleNavigation = () => {
   const [currentSection, setCurrentSection] = useState<SectionName>('home');
 
-  useEffect(() => on('section-changed', setCurrentSection), []);
+  useEffect(() => {
+    const unsub = on('section-changed', setCurrentSection);
+    return unsub;
+  }, []);
 
   const handleNavigate = (section: SectionName) => {
     setCurrentSection(section);

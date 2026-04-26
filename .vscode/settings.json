@@ -1,0 +1,8 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^ls -l node_modules/\\.bin/next && node -v && yarn -v$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

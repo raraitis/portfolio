@@ -1,12 +1,20 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Static export for deployment to static hosting
-  output: 'export',
-  trailingSlash: true,
+  // Standalone output for Railway deployment (Node.js server)
+  output: 'standalone',
 
-  // Image optimization disabled for static export
+  // Enable React Strict Mode for better performance warnings
+  reactStrictMode: true,
+
+  // Disable X-Powered-By header (security + reduced header size)
+  poweredByHeader: false,
+
+  // Enable gzip compression
+  compress: true,
+
+  // Image optimization
   images: {
-    unoptimized: true,
+    formats: ['image/avif', 'image/webp'],
   },
 
   // Security headers for production
@@ -17,6 +25,8 @@ const nextConfig = {
         source: '/(.*)',
         headers: [
           // Content Security Policy
+          // Note: 'unsafe-eval' required by Three.js WebGL shader compilation (used in CosmicDustThree.tsx).
+          // 'unsafe-inline' required for Next.js inline scripts and styled-jsx.
           {
             key: 'Content-Security-Policy',
             value:
@@ -47,10 +57,35 @@ const nextConfig = {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=(), payment=()',
           },
+          // Strict Transport Security (HTTPS only)
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains; preload',
+          },
+        ],
+      },
+      {
+        // Cache static assets aggressively
+        source: '/(.*)\\.(ico|png|jpg|jpeg|gif|svg|webp|avif|woff|woff2|ttf|eot)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        // Cache JS/CSS with revalidation
+        source: '/_next/static/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
         ],
       },
     ];
   },
 };
 
-module.exports = nextConfig
+module.exports = nextConfig;

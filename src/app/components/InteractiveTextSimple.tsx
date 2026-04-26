@@ -1,8 +1,12 @@
 'use client'
 
-import React, { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { animated, useSpringValue, useSpring } from '@react-spring/web';
 import { useDrag } from '@use-gesture/react';
+import {
+  useAnimationState,
+  useAnimationActions,
+} from '@/contexts/AnimationContext';
 import { useDevice } from '../hooks/useDevice';
 import { nameText, nameTextMobile } from '../../styles';
 
@@ -48,6 +52,10 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
       : { tension: 150, friction: 20 },
   };
 
+  // Animation context hooks
+  const animationState = useAnimationState();
+  const animationActions = useAnimationActions();
+
   const wordX = useSpringValue(initialX); // Start directly at final position
   const wordY = useSpringValue(initialY);
   const wordScale = useSpringValue(1); // Start at full size
@@ -56,15 +64,10 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
   // Choose appropriate text styles based on device type
   const currentTextStyles = device.isMobile ? nameTextMobile : nameText;
 
-  const scatterTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
-  const reassembleTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
-
-  useEffect(() => {
-    return () => {
-      if (scatterTimeoutRef.current) clearTimeout(scatterTimeoutRef.current);
-      if (reassembleTimeoutRef.current) clearTimeout(reassembleTimeoutRef.current);
-    };
-  }, []);
+  // Gravitational influence effect disabled for better performance in fixed position
+  // useEffect(() => {
+  //   // Gravitational effects disabled when name is in fixed top-left position
+  // }, []);
 
   const bind = useDrag(
     ({ active, movement: [mx, my], offset: [ox, oy], velocity: [vx, vy] }) => {
@@ -75,6 +78,7 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
         wordX.set(initialX + mx);
         wordY.set(initialY + my);
         wordScale.start({ to: 1.1, config: springConfig.scale }); // Use optimized config
+        animationActions.updateBackgroundIntensity();
       } else {
         // Not actively dragging - apply gravity with visible drop
         const oy = wordY.get();
@@ -94,10 +98,11 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
 
         // Scatter when word has dropped about 60% of the way - so you see the drop AND the scatter
         const scatterDelay = Math.max(100, Math.min(400, dropDistance * 2)); // Proportional to drop distance
-        scatterTimeoutRef.current = setTimeout(() => {
+        setTimeout(() => {
           scatterWord(ox, oy + dropDistance * 0.6); // Scatter from 60% down position
         }, scatterDelay);
 
+        animationActions.updateBackgroundIntensity();
       }
     },
     {
@@ -134,7 +139,7 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
     setScatteredLetters(letters);
 
     // Reduced delay - magnet reassembly starts faster
-    reassembleTimeoutRef.current = setTimeout(() => {
+    setTimeout(() => {
       setIsScattered(false);
       setScatteredLetters([]);
 
@@ -199,7 +204,7 @@ interface ScatteredLetterProps {
   textStyles: typeof nameText;
 }
 
-const ScatteredLetter = React.memo(({
+const ScatteredLetter = ({
   letter,
   x,
   y,
@@ -207,6 +212,11 @@ const ScatteredLetter = React.memo(({
 }: ScatteredLetterProps) => {
   const [currentX, setCurrentX] = useState(x);
   const [currentY, setCurrentY] = useState(y);
+
+  // Gravitational influence disabled for performance - scattered letters remain static
+  // useEffect(() => {
+  //   // Gravitational effects disabled to prevent infinite re-render loops
+  // }, []);
 
   const {
     x: springX,
@@ -258,8 +268,7 @@ const ScatteredLetter = React.memo(({
       {letter}
     </animated.div>
   );
-});
-ScatteredLetter.displayName = 'ScatteredLetter';
+};
 
 export default function InteractiveText() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -270,7 +279,7 @@ export default function InteractiveText() {
       <div className='fixed inset-0 overflow-hidden'>
         <div
           ref={containerRef}
-          className='absolute top-0 left-0 flex items-start justify-start pt-5 pl-5 sm:pt-12 sm:pl-12'
+          className='absolute top-0 left-0 flex items-start justify-start pt-8 pl-8 sm:pt-12 sm:pl-12'
         >
           {/* RAITIS - First name */}
           <DraggableWord

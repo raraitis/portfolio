@@ -4,11 +4,37 @@ import { spacing, zIndex } from './sizing';
 import { textStyles, fonts } from './typography';
 
 export const styles = {
+  // Canvas styles - used in BackgroundElements.tsx
+  canvas: {
+    background: {
+      position: 'fixed' as const,
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      pointerEvents: 'none' as const,
+      zIndex: zIndex.base,
+      background: 'transparent',
+    },
+  },
+
+  // Layout styles - used in layout.tsx
   layout: {
+    // Saturn theme styles
+    saturnBody: {
+      background: `linear-gradient(135deg, 
+        ${colors.saturn.lightest} 0%, 
+        ${colors.saturn.light} 25%, 
+        ${colors.saturn.medium} 50%, 
+        ${colors.saturn.dark} 75%, 
+        ${colors.saturn.darkest} 100%
+      )`,
+    },
+
     saturnFrame: {
       position: 'fixed' as const,
       inset: 0,
-      // margin is controlled by .saturn-frame CSS class (responsive: 10px mobile, 20px desktop)
+      margin: '20px',
       border: `1px solid ${colors.saturn.darkest}`,
       borderImage: `linear-gradient(45deg, 
         ${colors.saturn.darkest} 0%, 

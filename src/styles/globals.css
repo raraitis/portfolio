@@ -1,28 +1,9 @@
 @import "tailwindcss";
 
-html {
-  /* Gradient on html (not body) so it extends into iOS Safari safe areas */
-  background: linear-gradient(135deg,
-    #f5f1e8 0%,
-    #ede4d3 25%,
-    #e8dcc6 50%,
-    #ddd0bb 75%,
-    #d4c4a8 100%
-  );
-  background-attachment: fixed;
-  overscroll-behavior: none;
-  min-height: 100svh;
-}
-
 body {
   color: #171717;
-  background: transparent; /* Transparent so html gradient shows through safe areas */
+  background: #ffffff;
   font-family: 'Alien Encounters', 'Inter', system-ui, sans-serif;
-  overscroll-behavior: none;
-  -webkit-overflow-scrolling: touch;
-  /* iOS safe area padding so content isn't behind notch/home indicator */
-  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-  min-height: 100svh;
 }
 
 /* Saturn ring animations */
@@ -38,21 +19,4 @@ body {
 
 .animate-spin-slow {
   animation: spin-slow linear infinite;
-  will-change: transform;
-}
-
-/* Responsive frame border - tighter on mobile to give content more room */
-.saturn-frame {
-  margin: 10px;
-  /* Respect iOS safe areas (notch, home indicator) */
-  margin-top: max(10px, env(safe-area-inset-top));
-  margin-bottom: max(10px, env(safe-area-inset-bottom));
-  margin-left: max(10px, env(safe-area-inset-left));
-  margin-right: max(10px, env(safe-area-inset-right));
-}
-
-@media (min-width: 640px) {
-  .saturn-frame {
-    margin: 20px;
-  }
 }

@@ -3,13 +3,15 @@
 // it is emitted dev-only. 'unsafe-inline' stays for script-src/style-src: Next
 // injects inline bootstrap scripts that would need nonce plumbing to drop it.
 const isProd = process.env.NODE_ENV === 'production';
+// Google Analytics (gtag) needs googletagmanager.com for the script and the
+// google-analytics.com endpoints (region1.* etc.) for beacons.
 const contentSecurityPolicy = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isProd ? '' : " 'unsafe-eval'"}`,
+  `script-src 'self' 'unsafe-inline' https://www.googletagmanager.com${isProd ? '' : " 'unsafe-eval'"}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
+  "img-src 'self' data: blob: https://www.googletagmanager.com https://*.google-analytics.com",
   "font-src 'self' data:",
-  "connect-src 'self'",
+  "connect-src 'self' https://*.google-analytics.com https://www.googletagmanager.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

@@ -60,6 +60,24 @@ const nextConfig = {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=(), payment=()',
           },
+          // Force HTTPS on return visits. Deliberately WITHOUT
+          // includeSubDomains/preload: other subdomains of this domain are
+          // unknown and could still be plain HTTP.
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=31536000',
+          },
+          // Isolate the browsing context from cross-origin openers
+          {
+            key: 'Cross-Origin-Opener-Policy',
+            value: 'same-origin',
+          },
+          // All assets (fonts/scripts) are self-hosted; no cross-origin
+          // consumers need our resources
+          {
+            key: 'Cross-Origin-Resource-Policy',
+            value: 'same-origin',
+          },
         ],
       },
       {

@@ -13,6 +13,17 @@ interface WordProps {
   initialY: number;
 }
 
+// Scatter clamp (MUX-10): keep every scattered letter inside the viewport.
+// Spring coords are offset from viewport coords by the hero container's
+// padding (pt-5 pl-5 / sm:pt-12 sm:pl-12 below), so the max edges reserve the
+// largest padding value on top of the visual edge margin.
+const SCATTER_EDGE_PADDING = 12;
+const SCATTER_CONTAINER_OFFSET = 48;
+const ROOT_FONT_PX = 16; // rem→px for the letter glyph-box estimate
+
+const clampValue = (value: number, min: number, max: number) =>
+  Math.min(Math.max(value, min), max);
+
 const DraggableWord = ({ word, initialX, initialY }: WordProps) => {
   const [isScattered, setIsScattered] = useState(false);
   const [scatteredLetters, setScatteredLetters] = useState<
@@ -125,6 +136,19 @@ const DraggableWord = ({ word, initialX, initialY }: WordProps) => {
     const scatterCenterX = centerX;
     const scatterCenterY = centerY;
 
+    // Bound scatter targets to the viewport (random spread stays untouched,
+    // only the landing point is clamped) so letters never vanish off-screen
+    // on small viewports (375×667)
+    const viewportWidth =
+      typeof window !== 'undefined' ? window.innerWidth : 375;
+    const viewportHeight =
+      typeof window !== 'undefined' ? window.innerHeight : 700;
+    const letterSize = parseFloat(currentTextStyles.fontSize) * ROOT_FONT_PX;
+    const maxScatterX =
+      viewportWidth - SCATTER_CONTAINER_OFFSET - SCATTER_EDGE_PADDING - letterSize;
+    const maxScatterY =
+      viewportHeight - SCATTER_CONTAINER_OFFSET - SCATTER_EDGE_PADDING - letterSize;
+
     const letters = word.split('').map((letter, index) => {
       const randomAngle = Math.random() * Math.PI * 2;
       const randomDistance = 120 + Math.random() * 250;
@@ -135,8 +159,8 @@ const DraggableWord = ({ word, initialX, initialY }: WordProps) => {
       return {
         letter,
         index,
-        x: scatterX,
-        y: scatterY,
+        x: clampValue(scatterX, 0, maxScatterX),
+        y: clampValue(scatterY, 0, maxScatterY),
       };
     });
 

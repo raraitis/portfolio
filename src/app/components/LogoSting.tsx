@@ -441,6 +441,7 @@ const LogoSting = ({
     fillMesh.visible = false;
     tl
       .call(() => audio.ringBoom(), [], ringHit)
+      .call(() => audio.voice(`${word} ${subline}. ${tagline}`), [], ringHit + 0.2)
       .set(ringMesh, { visible: true }, ringAt)
       .set(fillMesh, { visible: true }, ringAt)
       .fromTo(ringMaterial, { opacity: 0 }, { opacity: 1, duration: 0.15, ease: 'power1.out' }, ringAt)
@@ -528,7 +529,7 @@ const LogoSting = ({
       renderer.dispose();
       rendererRef.current = null;
     };
-  }, [staticMode, word, subline, finish]);
+  }, [staticMode, word, subline, tagline, finish]);
 
   return (
     <div

@@ -7,6 +7,8 @@ export interface StingAudio {
   impact: () => void;
   swell: () => void;
   ringBoom: () => void;
+  /** Announcer read of the lockup line via the browser's speech synthesis. */
+  voice: (line: string) => void;
   /** Quick fade for skip/finish — future one-shots still schedule but inaudibly. */
   stop: () => void;
   dispose: () => void;
@@ -160,11 +162,30 @@ export function createStingAudio(): StingAudio {
     });
   };
 
+  const voice = (line: string): void => {
+    if (stopped) return;
+    try {
+      if (typeof speechSynthesis === 'undefined') return;
+      const utterance = new SpeechSynthesisUtterance(line);
+      utterance.pitch = 0.7; // announcer register
+      utterance.rate = 0.95;
+      utterance.volume = 0.9;
+      speechSynthesis.speak(utterance);
+    } catch {
+      // speech synthesis unavailable/blocked — stay silent
+    }
+  };
+
   const stop = (): void => {
     stopped = true;
     if (ctx && master && ctx.state === 'running') {
       master.gain.setValueAtTime(master.gain.value, ctx.currentTime);
       master.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.2);
+    }
+    try {
+      if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel();
+    } catch {
+      // ignore — nothing to cancel
     }
   };
 
@@ -178,5 +199,5 @@ export function createStingAudio(): StingAudio {
     noiseBuffer = null;
   };
 
-  return { whoosh, impact, swell, ringBoom, stop, dispose };
+  return { whoosh, impact, swell, ringBoom, voice, stop, dispose };
 }

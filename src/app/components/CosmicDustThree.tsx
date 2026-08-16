@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import gsap from 'gsap';
 import { on, emit, type SectionName } from '@/lib/events';
@@ -48,7 +48,9 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
   const planetFormRef = useRef(0);
   const sectionRef = useRef(section);
 
-  const handlePlanetClick = () => {
+  // Stable identity for the empty-dep bus subscription below. Constraint: this
+  // handler must only read refs — any prop/state read would go stale (STATE-07).
+  const handlePlanetClick = useCallback(() => {
     if (flyingRef.current) return;
     flyingRef.current = true;
     frozenOrbitTimeRef.current = animTimeRef.current;
@@ -87,7 +89,7 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
         current: 1, duration: 5.0, ease: 'power1.inOut',
       }, 5.5)
       .call(() => { flyingRef.current = false; }, [], 10.5);
-  };
+  }, []);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -527,12 +529,33 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
     };
   }, []);
 
-  useEffect(() => on('warp-trigger', handlePlanetClick), []);
+  useEffect(() => on('warp-trigger', handlePlanetClick), [handlePlanetClick]);
+
+  // A fresher user navigation wins over an in-flight warp: kill the timeline so
+  // its delayed navigate/blend steps can't clobber the new section, then tween
+  // the warp state back to rest — overwrite:'auto' keeps one tween per target (IR-R2)
+  useEffect(() => on('navigate', (target) => {
+    if (!flyingRef.current || target === 'portfolio') return;
+    warpTimelineRef.current?.kill();
+    warpTimelineRef.current = null;
+    flyingRef.current = false;
+    const material = particlesRef.current?.material as THREE.ShaderMaterial | undefined;
+    if (material?.uniforms) {
+      gsap.to(material.uniforms.uWarpProgress, { value: 0, duration: 0.8, ease: 'power2.out', overwrite: 'auto' });
+    }
+    if (overlayRef.current) {
+      gsap.to(overlayRef.current, { opacity: 0, duration: 0.5, ease: 'power2.out', overwrite: 'auto' });
+    }
+  }), []);
 
   useEffect(() => {
     if (section !== 'portfolio' && portfolioBlendRef.current > 0) {
-      gsap.to(planetFormRef, { current: 0, duration: 1.0, ease: 'power2.in' });
-      gsap.to(portfolioBlendRef, { current: 0, duration: 1.5, ease: 'power2.inOut' });
+      const formTween = gsap.to(planetFormRef, { current: 0, duration: 1.0, ease: 'power2.in', overwrite: 'auto' });
+      const blendTween = gsap.to(portfolioBlendRef, { current: 0, duration: 1.5, ease: 'power2.inOut', overwrite: 'auto' });
+      return () => {
+        formTween.kill();
+        blendTween.kill();
+      };
     }
   }, [section]);
 

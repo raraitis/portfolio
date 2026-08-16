@@ -41,9 +41,9 @@ export default function RootLayout({
             into <head>; font preloads require crossOrigin even same-origin */}
         <link
           rel='preload'
-          href='/fonts/Alien-Encounters-Regular.ttf'
+          href='/fonts/Alien-Encounters-Regular.woff2'
           as='font'
-          type='font/ttf'
+          type='font/woff2'
           crossOrigin='anonymous'
         />
         {/* Saturn-colored frame border */}

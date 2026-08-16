@@ -10,7 +10,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import gsap from 'gsap';
-import { buildGlyph, GLYPH_SPACING } from './logoSting.glyphs';
+import { buildGlyph, buildLineShapes, GLYPH_SPACING } from './logoSting.glyphs';
 import { MOBILE_BREAKPOINT, zIndex } from '@/styles/sizing';
 import { colors, shimmer } from '@/styles/colors';
 import { fonts } from '@/styles/typography';
@@ -19,12 +19,14 @@ import { useReducedMotion } from '../hooks/useReducedMotion';
 interface LogoStingProps {
   onDone: () => void;
   word?: string;
+  subline?: string;
   tagline?: string;
 }
 
 // Sports-sting palette (single definition — CSS strings, parsed by THREE.Color for GL)
 const WORD_RED = '#d22630';
 const WORD_BLUE = '#1c4da1';
+const WORD_BLUE_LIGHT = '#3f8fd2';
 const RING_SILVER = '#c9c9c9';
 const BACKDROP_GRAY = '#e9e9e9';
 
@@ -44,6 +46,10 @@ const ITALIC_SHEAR = 0.28;
 const SEGMENT_GAP = 0.3;
 /** The red side tokens render at this fraction of the blue IT's size. */
 const SIDE_TOKEN_SCALE = 0.62;
+/** Secondary line (“SOLUTIONS”): upright caps under the mark, plus a tiny ™. */
+const SUBLINE_SCALE = 0.36;
+const TM_SCALE = 0.13;
+const SUBLINE_BASELINE = -0.66;
 /** Silver ring: band width and clearance around the wordmark. */
 const RING_WIDTH = 0.22;
 const RING_PAD = 0.55;
@@ -71,6 +77,7 @@ const isAccentToken = (token: string): boolean => token !== token.toLowerCase();
 const LogoSting = ({
   onDone,
   word = 'ra IT is',
+  subline = 'SOLUTIONS',
   tagline = "it's in the name.",
 }: LogoStingProps) => {
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -192,6 +199,14 @@ const LogoSting = ({
     let maxY = -Infinity;
     let cursor = 0;
 
+    const letterExtrude = {
+      depth: 0.32,
+      bevelEnabled: true,
+      bevelThickness: 0.03,
+      bevelSize: 0.02,
+      bevelSegments: 2,
+    };
+
     tokens.forEach((token, tokenIndex) => {
       if (tokenIndex > 0) cursor += SEGMENT_GAP;
       const accent = isAccentToken(token);
@@ -200,13 +215,7 @@ const LogoSting = ({
       for (const ch of token) {
         const glyph = buildGlyph(ch);
         if (!glyph) continue;
-        const geometry = new THREE.ExtrudeGeometry(glyph.shapes, {
-          depth: 0.32,
-          bevelEnabled: true,
-          bevelThickness: 0.03,
-          bevelSize: 0.02,
-          bevelSegments: 2,
-        });
+        const geometry = new THREE.ExtrudeGeometry(glyph.shapes, letterExtrude);
         // Bake the token size into the geometry (about the baseline origin) so
         // mesh.scale stays free for the landing squash; shear AFTER scaling
         // keeps the italic angle identical across sizes. Then center x/z ONLY —
@@ -241,16 +250,71 @@ const LogoSting = ({
     });
 
     const wordWidth = cursor;
+
+    // Secondary “SOLUTIONS™” line: upright caps as one mesh (it arrives as a
+    // unit, not stamped), sharing one material with the top-aligned tiny ™
+    const sublineMeshes: THREE.Mesh[] = [];
+    let sublineHalfWidth = 0;
+    if (subline) {
+      const run = buildLineShapes(subline.toUpperCase());
+      if (run.shapes.length > 0) {
+        const subMaterial = new THREE.MeshStandardMaterial({
+          color: new THREE.Color(WORD_BLUE_LIGHT),
+          metalness: 0.08,
+          roughness: 0.32,
+          envMapIntensity: 0.7,
+          transparent: true,
+        });
+        materials.push(subMaterial);
+
+        const subGeometry = new THREE.ExtrudeGeometry(run.shapes, letterExtrude);
+        subGeometry.scale(SUBLINE_SCALE, SUBLINE_SCALE, SUBLINE_SCALE);
+        subGeometry.computeBoundingBox();
+        const subRaw = subGeometry.boundingBox!;
+        subGeometry.translate(-(subRaw.min.x + subRaw.max.x) / 2, 0, -(subRaw.min.z + subRaw.max.z) / 2);
+        subGeometry.computeBoundingBox();
+        const subBBox = subGeometry.boundingBox!;
+        geometries.push(subGeometry);
+        const subMesh = new THREE.Mesh(subGeometry, subMaterial);
+        subMesh.position.y = SUBLINE_BASELINE;
+        sublineHalfWidth = (subBBox.max.x - subBBox.min.x) / 2;
+        minY = Math.min(minY, SUBLINE_BASELINE + subBBox.min.y);
+        maxY = Math.max(maxY, SUBLINE_BASELINE + subBBox.max.y);
+        sublineMeshes.push(subMesh);
+
+        const tmRun = buildLineShapes('TM');
+        const tmGeometry = new THREE.ExtrudeGeometry(tmRun.shapes, letterExtrude);
+        tmGeometry.scale(TM_SCALE, TM_SCALE, TM_SCALE);
+        tmGeometry.computeBoundingBox();
+        const tmRaw = tmGeometry.boundingBox!;
+        tmGeometry.translate(-(tmRaw.min.x + tmRaw.max.x) / 2, 0, -(tmRaw.min.z + tmRaw.max.z) / 2);
+        tmGeometry.computeBoundingBox();
+        const tmBBox = tmGeometry.boundingBox!;
+        geometries.push(tmGeometry);
+        const tmMesh = new THREE.Mesh(tmGeometry, subMaterial);
+        const tmHalfWidth = (tmBBox.max.x - tmBBox.min.x) / 2;
+        tmMesh.position.x = sublineHalfWidth + tmHalfWidth + 0.08;
+        tmMesh.position.y = SUBLINE_BASELINE + SUBLINE_SCALE - TM_SCALE; // cap-top aligned
+        sublineHalfWidth = tmMesh.position.x + tmHalfWidth;
+        sublineMeshes.push(tmMesh);
+      }
+    }
+
     const wordMidY = (minY + maxY) / 2;
     for (const mesh of letterMeshes) {
       mesh.position.x -= wordWidth / 2;
       mesh.position.y = -wordMidY; // shared shift keeps the common baseline
       group.add(mesh);
     }
+    for (const mesh of sublineMeshes) {
+      mesh.position.y -= wordMidY;
+      group.add(mesh);
+    }
 
     // Silver ROUND ring: flat extruded band with a bevel, like a badge —
-    // radius clears the word line and its height
-    ovalX = Math.max(wordWidth / 2 + RING_PAD + RING_WIDTH, (maxY - minY) / 2 + 0.45);
+    // radius clears both lines and the lockup height
+    const lockupHalfWidth = Math.max(wordWidth / 2, sublineHalfWidth);
+    ovalX = Math.max(lockupHalfWidth + RING_PAD + RING_WIDTH, (maxY - minY) / 2 + 0.45);
     ovalY = ovalX;
     const ringShape = new THREE.Shape();
     ringShape.absellipse(0, 0, ovalX, ovalY, 0, Math.PI * 2, false, 0);
@@ -302,7 +366,8 @@ const LogoSting = ({
     const groupY = group.position.y;
 
     // Continuous slow camera drift under the whole intro — nothing sits still
-    const ringAt = T.stampStart + letterMeshes.length * T.stampInterval + 0.05;
+    const sublineAt = T.stampStart + letterMeshes.length * T.stampInterval + 0.05;
+    const ringAt = sublineAt + (sublineMeshes.length > 0 ? 0.35 : 0);
     tl.fromTo(
       camera.position,
       { z: finalDist * 1.07 },
@@ -335,6 +400,19 @@ const LogoSting = ({
         .to(flashRef.current, { autoAlpha: 0.12, duration: 0.04, ease: 'power1.in' }, land)
         .to(flashRef.current, { autoAlpha: 0, duration: 0.12, ease: 'power1.out' }, land + 0.04);
     });
+
+    // Secondary line rises in as one unit once the mark is stamped
+    if (sublineMeshes.length > 0) {
+      const subMaterial = sublineMeshes[0].material as THREE.MeshStandardMaterial;
+      tl.fromTo(subMaterial, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: 'power1.out' }, sublineAt);
+      for (const mesh of sublineMeshes) {
+        mesh.visible = false;
+        const finalY = mesh.position.y;
+        tl
+          .set(mesh, { visible: true }, sublineAt)
+          .fromTo(mesh.position, { y: finalY - 0.15 }, { y: finalY, duration: 0.35, ease: 'power2.out' }, sublineAt);
+      }
+    }
 
     // Ring phase: the ring glides in over the finished word — overshoot
     // settle while it spins, fading up as it arrives — then the big
@@ -428,7 +506,7 @@ const LogoSting = ({
       renderer.dispose();
       rendererRef.current = null;
     };
-  }, [staticMode, word, finish]);
+  }, [staticMode, word, subline, finish]);
 
   return (
     <div
@@ -474,8 +552,10 @@ const LogoSting = ({
               borderRadius: '50%',
               aspectRatio: '1',
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
+              gap: '0.5rem',
               padding: '2rem',
             }}
           >
@@ -503,6 +583,18 @@ const LogoSting = ({
                 </span>
               ))}
             </div>
+            {subline && (
+              <div
+                style={{
+                  fontFamily: fonts.alien,
+                  fontSize: 'clamp(0.75rem, 2.6vw, 1.2rem)',
+                  color: WORD_BLUE_LIGHT,
+                  letterSpacing: '0.25em',
+                }}
+              >
+                {subline.toUpperCase()}™
+              </div>
+            )}
           </div>
           <div
             style={{

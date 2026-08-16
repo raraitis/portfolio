@@ -1,7 +1,8 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { m } from '@/lib/motion';
-import { emit } from '@/lib/events';
+import { emit, on } from '@/lib/events';
 import SectionShell from './SectionShell';
 import { TAGLINE } from '@/lib/content';
 import { shimmer } from '@/styles/colors';
@@ -14,6 +15,12 @@ const CONTACT_LINK_CLASS =
   'text-gray-500 hover:text-black active:text-black transition-colors font-alien text-sm sm:text-base tracking-wider py-3 px-3 min-h-[44px] inline-flex items-center';
 
 const MeSection = () => {
+  // Pending affordance for the ~10.5s warp (IR-N1): set on 'warp-trigger', cleared on the next 'section-changed'.
+  const [warping, setWarping] = useState(false);
+
+  useEffect(() => on('warp-trigger', () => setWarping(true)), []);
+  useEffect(() => on('section-changed', () => setWarping(false)), []);
+
   return (
     <SectionShell duration={0.3}>
       {/* About Section */}
@@ -72,7 +79,11 @@ const MeSection = () => {
           <span className='text-gray-300 font-light select-none'>|</span>
           <button
             onClick={() => emit('warp-trigger')}
-            className={`${CONTACT_LINK_CLASS} bg-transparent border-none cursor-pointer`}
+            disabled={warping}
+            aria-busy={warping}
+            className={`${CONTACT_LINK_CLASS} bg-transparent border-none ${
+              warping ? 'opacity-40 cursor-wait' : 'cursor-pointer'
+            }`}
           >
             PORTFOLIO
           </button>

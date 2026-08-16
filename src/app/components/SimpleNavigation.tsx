@@ -36,8 +36,18 @@ const RINGS: readonly Ring[] = [
 
 const SimpleNavigation = () => {
   const [currentSection, setCurrentSection] = useState<SectionName>('home');
+  // Pending affordance for the ~10.5s warp (IR-N1): set on 'warp-trigger', cleared on the next 'section-changed'.
+  const [warping, setWarping] = useState(false);
 
-  useEffect(() => on('section-changed', setCurrentSection), []);
+  useEffect(
+    () =>
+      on('section-changed', (section) => {
+        setCurrentSection(section);
+        setWarping(false);
+      }),
+    []
+  );
+  useEffect(() => on('warp-trigger', () => setWarping(true)), []);
 
   const handleNavigate = (section: SectionName) => {
     setCurrentSection(section);
@@ -71,21 +81,28 @@ const SimpleNavigation = () => {
 
         {/* Navigation content */}
         <div className='flex space-x-4 sm:space-x-8 relative z-10'>
-          {visibleItems.map((item) => (
-            <button
-              key={item.word}
-              onClick={() => {
-                if (item.useWarp) {
-                  emit('warp-trigger');
-                } else {
-                  handleNavigate(item.section);
-                }
-              }}
-              className='text-[13px] sm:text-base tracking-wide text-gray-600 hover:text-gray-800 active:text-gray-900 transition-colors select-none font-alien bg-transparent border-none cursor-pointer py-3 px-2 min-h-[44px] min-w-[44px]'
-            >
-              {item.word}
-            </button>
-          ))}
+          {visibleItems.map((item) => {
+            const isWarpPending = item.useWarp && warping;
+            return (
+              <button
+                key={item.word}
+                disabled={isWarpPending}
+                aria-busy={isWarpPending}
+                onClick={() => {
+                  if (item.useWarp) {
+                    emit('warp-trigger');
+                  } else {
+                    handleNavigate(item.section);
+                  }
+                }}
+                className={`text-[13px] sm:text-base tracking-wide text-gray-600 hover:text-gray-800 active:text-gray-900 transition-colors select-none font-alien bg-transparent border-none py-3 px-2 min-h-[44px] min-w-[44px] ${
+                  isWarpPending ? 'opacity-40 cursor-wait' : 'cursor-pointer'
+                }`}
+              >
+                {item.word}
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>

@@ -40,6 +40,8 @@ const RING_Y_LIFT = 0.12;
 const MIN_CAMERA_DIST = 3;
 /** Reduced-motion / WebGL-fallback static card duration. */
 const STATIC_HOLD_MS = 2600;
+/** Global playback rate — < 1 slows the whole choreography uniformly. */
+const PLAYBACK_RATE = 0.85;
 /** Sports-logotype italics: x' = x + shear * y, applied per glyph geometry. */
 const ITALIC_SHEAR = 0.28;
 /** Gap between word tokens on the single line, in text-size units. */
@@ -366,6 +368,7 @@ const LogoSting = ({
     camera.position.set(0, group.position.y, finalDist);
 
     const tl = gsap.timeline();
+    tl.timeScale(PLAYBACK_RATE);
     timelineRef.current = tl;
     const groupY = group.position.y;
 

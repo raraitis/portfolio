@@ -16,6 +16,14 @@ export default function HomePage() {
   const [stingOpen, setStingOpen] = useState(false);
   const closeSting = useCallback(() => setStingOpen(false), []);
 
+  // ?sting=1 auto-plays the sting shortly after load — lets a screen
+  // recording start clean, with no cursor or button click in frame
+  useEffect(() => {
+    if (!new URLSearchParams(window.location.search).has('sting')) return;
+    const timer = setTimeout(() => setStingOpen(true), 800);
+    return () => clearTimeout(timer);
+  }, []);
+
   const navigateToSection = useCallback((section: SectionName) => {
     setCurrentSection(section);
     emit('section-changed', section);

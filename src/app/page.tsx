@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { m, LazyMotion, AnimatePresence, domAnimation } from '@/lib/motion';
-import InteractiveText from './components/InteractiveTextSimple';
+import InteractiveText from './components/InteractiveText';
 import PortfolioSection from './components/PortfolioSection';
 import GameSection from './components/GameSection';
 import { on, emit, type SectionName } from '@/lib/events';

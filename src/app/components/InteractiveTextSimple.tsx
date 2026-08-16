@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { animated, useSpringValue, useSpring } from '@react-spring/web';
 import { useDrag } from '@use-gesture/react';
 import { useDevice } from '../hooks/useDevice';
@@ -10,10 +10,9 @@ interface WordProps {
   word: string;
   initialX: number;
   initialY: number;
-  wordIndex: number;
 }
 
-const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
+const DraggableWord = ({ word, initialX, initialY }: WordProps) => {
   const [isScattered, setIsScattered] = useState(false);
   const [scatteredLetters, setScatteredLetters] = useState<
     Array<{
@@ -26,101 +25,99 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
   const device = useDevice();
 
   // Mobile-optimized spring configurations
-  const springConfig = {
-    // Scale animation config - more responsive on mobile
-    scale: device.isMobile
-      ? { tension: 300, friction: 25 } // Reduced tension for better mobile performance
-      : { tension: 400, friction: 20 },
+  const springConfig = useMemo(
+    () => ({
+      scale: device.isMobile
+        ? { tension: 300, friction: 25 }
+        : { tension: 400, friction: 20 },
 
-    // Drop animation config - less intensive on mobile
-    drop: device.isMobile
-      ? { tension: 50, friction: 15, mass: 1.5 } // Reduced complexity for mobile
-      : { tension: 60, friction: 12, mass: 2 },
+      drop: device.isMobile
+        ? { tension: 50, friction: 15, mass: 1.5 }
+        : { tension: 60, friction: 12, mass: 2 },
 
-    // Return animation config - faster on mobile to reduce jank
-    return: device.isMobile
-      ? { tension: 100, friction: 30, mass: 0.8 } // Faster, less bouncy
-      : { tension: 120, friction: 25, mass: 1 },
+      return: device.isMobile
+        ? { tension: 100, friction: 30, mass: 0.8 }
+        : { tension: 120, friction: 25, mass: 1 },
 
-    // Reset scale config
-    resetScale: device.isMobile
-      ? { tension: 120, friction: 25 } // Simpler reset
-      : { tension: 150, friction: 20 },
-  };
+      resetScale: device.isMobile
+        ? { tension: 120, friction: 25 }
+        : { tension: 150, friction: 20 },
+    }),
+    [device.isMobile]
+  );
 
-  const wordX = useSpringValue(initialX); // Start directly at final position
+  const wordX = useSpringValue(initialX);
   const wordY = useSpringValue(initialY);
-  const wordScale = useSpringValue(1); // Start at full size
+  const wordScale = useSpringValue(1);
   const [isDragging, setIsDragging] = useState(false);
 
-  // Choose appropriate text styles based on device type
   const currentTextStyles = device.isMobile ? nameTextMobile : nameText;
 
-  // Gravitational influence effect disabled for better performance in fixed position
-  // useEffect(() => {
-  //   // Gravitational effects disabled when name is in fixed top-left position
-  // }, []);
+  const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const clearPendingTimeouts = useCallback(() => {
+    for (const id of timeoutsRef.current) clearTimeout(id);
+    timeoutsRef.current = [];
+  }, []);
+
+  useEffect(() => clearPendingTimeouts, [clearPendingTimeouts]);
 
   const bind = useDrag(
-    ({ active, movement: [mx, my], offset: [ox, oy], velocity: [vx, vy] }) => {
+    ({ active, first, movement: [mx, my] }) => {
       setIsDragging(active);
 
       if (active) {
-        // Dragging the word - use movement from initial position
+        if (first) clearPendingTimeouts();
         wordX.set(initialX + mx);
         wordY.set(initialY + my);
-        wordScale.start({ to: 1.1, config: springConfig.scale }); // Use optimized config
+        wordScale.start({ to: 1.1, config: springConfig.scale });
       } else {
-        // Not actively dragging - apply gravity with visible drop
         const oy = wordY.get();
-        const ox = wordX.get(); // Keep current X position - drop straight down
+        const ox = wordX.get();
 
-        // Floor collision - drop almost to bottom of page (only 50px from bottom)
+        // Drop floor: 300px above the viewport bottom, clamped so a short
+        // viewport can't put the floor above the word's start position
         const screenHeight =
           typeof window !== 'undefined' ? window.innerHeight : 700;
-        const floorY = screenHeight - 300; // Almost to the very bottom
+        const floorY = Math.max(initialY + 60, screenHeight - 300);
         const dropDistance = floorY - oy;
 
-        // Animate the drop with visible gravity
         wordY.start({
           to: floorY,
-          config: springConfig.drop, // Use optimized drop config
+          config: springConfig.drop,
         });
 
-        // Scatter when word has dropped about 60% of the way - so you see the drop AND the scatter
+        // Scatter at ~60% of the drop so both the fall and the burst are visible
         const scatterDelay = Math.max(100, Math.min(400, dropDistance * 2)); // Proportional to drop distance
-        setTimeout(() => {
-          scatterWord(ox, oy + dropDistance * 0.6); // Scatter from 60% down position
-        }, scatterDelay);
-
+        timeoutsRef.current.push(
+          setTimeout(() => {
+            scatterWord(ox, oy + dropDistance * 0.6);
+          }, scatterDelay)
+        );
       }
     },
     {
       from: () => [wordX.get(), wordY.get()],
-      // Remove bounds to allow free movement
+      // No bounds — free movement
     }
   );
 
   const scatterWord = (centerX: number, centerY: number) => {
     setIsScattered(true);
 
-    // Use exact drop position for scatter center
     const scatterCenterX = centerX;
     const scatterCenterY = centerY;
 
     const letters = word.split('').map((letter, index) => {
-      // Each letter gets completely random direction and distance
-      const randomAngle = Math.random() * Math.PI * 2; // Full 360 degrees
-      const randomDistance = 120 + Math.random() * 250; // Even larger scatter radius
+      const randomAngle = Math.random() * Math.PI * 2;
+      const randomDistance = 120 + Math.random() * 250;
 
-      // Calculate scatter position using angle (this gives true directional scatter)
       const scatterX = scatterCenterX + Math.cos(randomAngle) * randomDistance;
       const scatterY = scatterCenterY + Math.sin(randomAngle) * randomDistance;
 
       return {
         letter,
         index,
-        // No bounds at all - let letters go anywhere for maximum scatter
         x: scatterX,
         y: scatterY,
       };
@@ -128,26 +125,26 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
 
     setScatteredLetters(letters);
 
-    // Reduced delay - magnet reassembly starts faster
-    setTimeout(() => {
-      setIsScattered(false);
-      setScatteredLetters([]);
+    // After 1.5s, reassemble: spring letters back and restore scale
+    timeoutsRef.current.push(
+      setTimeout(() => {
+        setIsScattered(false);
+        setScatteredLetters([]);
 
-      // Faster, more fluid magnet pull
-      wordX.start({
-        to: initialX,
-        config: springConfig.return, // Use optimized return config
-      });
-      wordY.start({
-        to: initialY,
-        config: springConfig.return,
-      });
-      wordScale.start({ to: 1, config: springConfig.resetScale });
-    }, 1500); // Shorter display time
+        wordX.start({
+          to: initialX,
+          config: springConfig.return,
+        });
+        wordY.start({
+          to: initialY,
+          config: springConfig.return,
+        });
+        wordScale.start({ to: 1, config: springConfig.resetScale });
+      }, 1500)
+    );
   };
 
   if (isScattered) {
-    // Show scattered letters
     return (
       <>
         {scatteredLetters.map((letterData, index) => (
@@ -163,7 +160,6 @@ const DraggableWord = ({ word, initialX, initialY, wordIndex }: WordProps) => {
     );
   }
 
-  // Show normal draggable word
   return (
     <animated.div
       {...bind()}
@@ -200,43 +196,35 @@ const ScatteredLetter = React.memo(({
   y,
   textStyles,
 }: ScatteredLetterProps) => {
-  const [currentX, setCurrentX] = useState(x);
-  const [currentY, setCurrentY] = useState(y);
-
-  // Gravitational influence disabled for performance - scattered letters remain static
-  // useEffect(() => {
-  //   // Gravitational effects disabled to prevent infinite re-render loops
-  // }, []);
-
   const {
     x: springX,
     y: springY,
     rotation,
     scale,
   } = useSpring({
-    from: { x: currentX, y: currentY, rotation: 0, scale: 1 },
+    from: { x, y, rotation: 0, scale: 1 },
     to: async (next) => {
-      // Bounce sequence with gravitational influence
+      // Bounce sequence: up, quick drop, settle
       await next({
-        x: currentX, // Use gravity-influenced position
-        y: currentY - 25 - Math.random() * 20, // Bounce up
+        x,
+        y: y - 25 - Math.random() * 20,
         rotation: (Math.random() - 0.5) * 180, // Random rotation
         scale: 1.15,
       });
       await next({
-        x: currentX, // Gravity keeps influencing
-        y: currentY + 5, // Quick drop
+        x,
+        y: y + 5,
         scale: 0.9,
         rotation: (Math.random() - 0.5) * 90,
       });
       await next({
-        x: currentX, // Final gravity-influenced position
-        y: currentY, // Final position
+        x,
+        y,
         scale: 1,
         rotation: (Math.random() - 0.5) * 45, // Small final rotation
       });
     },
-    config: { tension: 250, friction: 20 }, // More responsive bounce
+    config: { tension: 250, friction: 20 },
   });
 
   return (
@@ -262,31 +250,13 @@ const ScatteredLetter = React.memo(({
 ScatteredLetter.displayName = 'ScatteredLetter';
 
 export default function InteractiveText() {
-  const containerRef = useRef<HTMLDivElement>(null);
-
   return (
     <>
-      {/* Interactive word area positioned in top-left */}
       <div className='fixed inset-0 overflow-hidden'>
-        <div
-          ref={containerRef}
-          className='absolute top-0 left-0 flex items-start justify-start pt-5 pl-5 sm:pt-12 sm:pl-12'
-        >
-          {/* RAITIS - First name */}
-          <DraggableWord
-            word='RAITIS'
-            initialX={0}
-            initialY={0}
-            wordIndex={0}
-          />
+        <div className='absolute top-0 left-0 flex items-start justify-start pt-5 pl-5 sm:pt-12 sm:pl-12'>
+          <DraggableWord word='RAITIS' initialX={0} initialY={0} />
 
-          {/* KRASLOVSKIS - Last name */}
-          <DraggableWord
-            word='KRASLOVSKIS'
-            initialX={0}
-            initialY={50}
-            wordIndex={1}
-          />
+          <DraggableWord word='KRASLOVSKIS' initialX={0} initialY={50} />
         </div>
       </div>
     </>

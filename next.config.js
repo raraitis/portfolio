@@ -3,9 +3,11 @@ const nextConfig = {
   // Standalone output for Railway deployment (Node.js server)
   output: 'standalone',
 
-  // Image optimization
+  // No next/image usage anywhere — disable the optimizer so the standalone
+  // server does not expose the /_next/image endpoint (and its sharp/libvips
+  // dependency chain) for nothing.
   images: {
-    formats: ['image/avif', 'image/webp'],
+    unoptimized: true,
   },
 
   // Security headers for production

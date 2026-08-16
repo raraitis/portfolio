@@ -49,8 +49,9 @@ const SimpleNavigation = () => {
   );
   useEffect(() => on('warp-trigger', () => setWarping(true)), []);
 
+  // No local write — HomePage owns the section and echoes 'section-changed'
+  // synchronously, which is this component's only write path.
   const handleNavigate = (section: SectionName) => {
-    setCurrentSection(section);
     emit('navigate', section);
   };
 

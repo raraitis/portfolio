@@ -12,7 +12,6 @@ export default function HomePage() {
 
   const navigateToSection = useCallback((section: SectionName) => {
     setCurrentSection(section);
-    emit('background-section', section);
     emit('section-changed', section);
   }, []);
 

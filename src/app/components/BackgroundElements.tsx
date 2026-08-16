@@ -11,7 +11,7 @@ const CosmicDustThree = dynamic(() => import('./CosmicDustThree'), {
 const BackgroundElements = () => {
   const [section, setSection] = useState<SectionName>('home');
 
-  useEffect(() => on('background-section', setSection), []);
+  useEffect(() => on('section-changed', setSection), []);
 
   return <CosmicDustThree section={section} />;
 };

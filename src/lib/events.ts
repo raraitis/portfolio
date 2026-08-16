@@ -6,7 +6,6 @@ type EventMap = {
   'navigate': SectionName;
   'section-changed': SectionName;
   'warp-trigger': void;
-  'background-section': SectionName;
 };
 
 type Callback<K extends keyof EventMap> =

@@ -3,6 +3,11 @@
 import { m } from '@/lib/motion';
 import { emit } from '@/lib/events';
 import { TAGLINE } from '@/lib/content';
+import { shimmer } from '@/styles/colors';
+
+// Tagline shimmer gradients — static base layer plus the animated sweep
+const SHIMMER_BASE_GRADIENT = `linear-gradient(90deg, ${shimmer.edge} 0%, ${shimmer.mid} 50%, ${shimmer.edge} 100%)`;
+const SHIMMER_SWEEP_GRADIENT = `linear-gradient(90deg, transparent 0%, ${shimmer.sweepEdge} 20%, ${shimmer.sweepMid} 50%, ${shimmer.sweepEdge} 80%, transparent 100%)`;
 
 const CONTACT_LINK_CLASS =
   'text-gray-500 hover:text-black active:text-black transition-colors font-alien text-sm sm:text-base tracking-wider py-3 px-3 min-h-[44px] inline-flex items-center';
@@ -28,8 +33,7 @@ const MeSection = () => {
           <p
             className='text-sm leading-relaxed sm:text-lg text-gray-500 font-alien relative px-2 sm:px-0'
             style={{
-              background:
-                'linear-gradient(90deg, #9ca3af 0%, #6b7280 50%, #9ca3af 100%)',
+              background: SHIMMER_BASE_GRADIENT,
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
@@ -46,8 +50,7 @@ const MeSection = () => {
                 repeatType: 'loop',
               }}
               style={{
-                background:
-                  'linear-gradient(90deg, transparent 0%, #374151 20%, #1f2937 50%, #374151 80%, transparent 100%)',
+                background: SHIMMER_SWEEP_GRADIENT,
                 backgroundSize: '200% 100%',
                 WebkitBackgroundClip: 'text',
                 position: 'absolute',

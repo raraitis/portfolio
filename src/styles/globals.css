@@ -8,14 +8,24 @@
   --font-alien: 'Alien Encounters', 'Inter', system-ui, sans-serif;
 }
 
+/* Saturn ramp — mirrors colors.saturn in src/styles/colors.ts (CSS cannot
+   import TS); keep both sides byte-identical. */
+:root {
+  --color-saturn-lightest: #f5f1e8;
+  --color-saturn-light: #ede4d3;
+  --color-saturn-medium: #e8dcc6;
+  --color-saturn-dark: #ddd0bb;
+  --color-saturn-darkest: #d4c4a8;
+}
+
 html {
   /* Gradient on html (not body) so it extends into iOS Safari safe areas */
   background: linear-gradient(135deg,
-    #f5f1e8 0%,
-    #ede4d3 25%,
-    #e8dcc6 50%,
-    #ddd0bb 75%,
-    #d4c4a8 100%
+    var(--color-saturn-lightest) 0%,
+    var(--color-saturn-light) 25%,
+    var(--color-saturn-medium) 50%,
+    var(--color-saturn-dark) 75%,
+    var(--color-saturn-darkest) 100%
   );
   background-attachment: fixed;
   overscroll-behavior: none;

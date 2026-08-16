@@ -4,6 +4,7 @@ import '../styles/fonts.css';
 import SimpleNavigation from './components/SimpleNavigation';
 import BackgroundElements from './components/BackgroundElements';
 import { styles as layoutStyles } from '@/styles';
+import { colors } from '@/styles/colors';
 import { TAGLINE } from '@/lib/content';
 import type { Metadata, Viewport } from 'next';
 
@@ -19,7 +20,8 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
-  themeColor: '#f5f1e8',
+  // Mobile browser-chrome color — must match the html gradient's top stop
+  themeColor: colors.saturn.lightest,
 };
 
 export const metadata: Metadata = {

@@ -4,6 +4,7 @@ import '../styles/fonts.css';
 import SimpleNavigation from './components/SimpleNavigation';
 import BackgroundElements from './components/BackgroundElements';
 import { styles as layoutStyles } from '@/styles';
+import { TAGLINE } from '@/lib/content';
 import type { Metadata, Viewport } from 'next';
 
 const inter = Inter({
@@ -21,8 +22,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: 'Raitis Kraslovskis - Portfolio',
-  description:
-    'you think it. i make it. you break it. i solve it. universe approves. we happy. thats a deal.',
+  description: TAGLINE,
   appleWebApp: {
     statusBarStyle: 'black-translucent',
   },

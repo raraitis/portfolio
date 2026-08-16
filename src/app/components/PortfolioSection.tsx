@@ -48,7 +48,7 @@ const PortfolioSection = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.1 + index * 0.1 }}
-              className='block group'
+              className='block group py-2'
             >
               <div className='flex items-baseline justify-between sm:justify-start gap-3 sm:gap-6'>
                 <span className='text-lg sm:text-2xl font-alien text-gray-800 group-hover:text-black transition-colors tracking-wide'>

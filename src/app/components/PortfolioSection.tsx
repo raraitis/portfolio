@@ -13,13 +13,28 @@ interface PortfolioItem {
 const PORTFOLIO_ITEMS: PortfolioItem[] = [
   {
     title: 'Monitec',
-    url: 'https://monitec.app',
+    url: 'https://monitec.lv',
     description: 'Technical inspection platform',
   },
   {
-    title: 'Portfolio',
-    url: 'https://raitiskraslovskis.com',
-    description: '',
+    title: 'Bruklene',
+    url: 'https://bruklene.cc',
+    description: 'Bike shop & service',
+  },
+  {
+    title: 'Amacx',
+    url: 'https://amacx.lv',
+    description: 'Sports nutrition store',
+  },
+  {
+    title: 'Koud Studio',
+    url: 'https://koudstudio.com',
+    description: 'Web & mobile studio',
+  },
+  {
+    title: 'Stryda',
+    url: 'https://stryda.app/',
+    description: 'Activity telemetry, visualized',
   },
 ];
 

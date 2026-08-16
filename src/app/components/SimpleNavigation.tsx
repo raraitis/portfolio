@@ -1,7 +1,20 @@
 'use client'
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { on, emit, type SectionName } from '@/lib/events';
+
+interface NavItem {
+  word: string;
+  section: SectionName;
+  useWarp: boolean;
+  visibleOn: readonly SectionName[];
+}
+
+const NAV_ITEMS: readonly NavItem[] = [
+  { word: 'HOME PLANET', section: 'home', useWarp: false, visibleOn: ['me', 'portfolio', 'game'] },
+  { word: 'ME', section: 'me', useWarp: false, visibleOn: ['home'] },
+  { word: 'PORTFOLIO', section: 'portfolio', useWarp: true, visibleOn: ['me'] },
+];
 
 const SimpleNavigation = () => {
   const [currentSection, setCurrentSection] = useState<SectionName>('home');
@@ -13,30 +26,13 @@ const SimpleNavigation = () => {
     emit('navigate', section);
   };
 
-  // Define navigation items
-  const navItems = [
-    { word: 'HOME PLANET', section: 'home' as const, useWarp: false },
-    { word: 'ME', section: 'me' as const, useWarp: false },
-    { word: 'PORTFOLIO', section: 'portfolio' as const, useWarp: true },
-  ];
-
-  // Filter navigation items based on current section
-  const getVisibleNavItems = () => {
-    if (currentSection === 'home') {
-      return navItems.filter((item) => item.word === 'ME');
-    } else if (currentSection === 'me') {
-      // ME page shows HOME PLANET + PORTFOLIO
-      return navItems.filter((item) => item.word === 'HOME PLANET' || item.word === 'PORTFOLIO');
-    } else {
-      // Portfolio page shows HOME PLANET
-      return navItems.filter((item) => item.word === 'HOME PLANET');
-    }
-  };
-
-  const visibleItems = getVisibleNavItems();
+  const visibleItems = useMemo(
+    () => NAV_ITEMS.filter((item) => item.visibleOn.includes(currentSection)),
+    [currentSection]
+  );
 
   return (
-    <div className='fixed top-4 right-4 sm:top-16 sm:right-20 z-50'>
+    <div className='fixed z-50 top-[max(1rem,env(safe-area-inset-top))] right-[max(1rem,env(safe-area-inset-right))] sm:top-16 sm:right-20'>
       {/* Saturn-like rings container */}
       <div className='relative'>
         {/* Outer ring - smaller on mobile to prevent overflow */}

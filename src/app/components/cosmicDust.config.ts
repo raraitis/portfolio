@@ -1,6 +1,21 @@
 // Static configuration for the CosmicDustThree background: ball/orbit tuning,
 // planet constants, and star-field size. Shader sources live in cosmicDust.shaders.ts.
 
+import { colors } from '@/styles/colors';
+
+const hexToRgba = (hex: string, alpha: number) => {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+// Warp overlay fill — derived from the site background token so the hyperspace
+// white-out stays indistinguishable from the page behind it (SSOT-3). Mobile
+// uses a denser fill because the backdrop blur is disabled there (MUX-06).
+export const WARP_OVERLAY_FILL = hexToRgba(colors.saturn.lightest, 0.85);
+export const WARP_OVERLAY_FILL_MOBILE = hexToRgba(colors.saturn.lightest, 0.95);
+
 export interface BallConfig {
   id: string;
   color: { r: number; g: number; b: number };

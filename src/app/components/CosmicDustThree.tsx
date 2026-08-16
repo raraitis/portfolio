@@ -5,7 +5,15 @@ import * as THREE from 'three';
 import gsap from 'gsap';
 import { on, emit, type SectionName } from '@/lib/events';
 import { MOBILE_BREAKPOINT } from '@/styles/sizing';
-import { BALLS, BALL_ORBIT, STRIPE_COUNT, STAR_COUNT, type BallConfig } from './cosmicDust.config';
+import {
+  BALLS,
+  BALL_ORBIT,
+  STRIPE_COUNT,
+  STAR_COUNT,
+  WARP_OVERLAY_FILL,
+  WARP_OVERLAY_FILL_MOBILE,
+  type BallConfig,
+} from './cosmicDust.config';
 import {
   planetVertexShader,
   planetFragmentShader,
@@ -73,7 +81,7 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
         value: 1.0, duration: 4.0, ease: 'power2.in',
       })
       .to(overlayRef.current, {
-        opacity: 1, duration: 1.0, ease: 'power2.in',
+        autoAlpha: 1, duration: 1.0, ease: 'power2.in',
       }, 3.0)
       .call(() => { emit('navigate', 'portfolio'); }, [], 3.8)
       .to(material.uniforms.uWarpProgress, {
@@ -83,7 +91,7 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
         current: 1, duration: 2.0, ease: 'power2.out',
       }, 4.2)
       .to(overlayRef.current, {
-        opacity: 0, duration: 2.0, ease: 'power2.out',
+        autoAlpha: 0, duration: 2.0, ease: 'power2.out',
       }, 4.2)
       .to(planetFormRef, {
         current: 1, duration: 5.0, ease: 'power1.inOut',
@@ -106,7 +114,9 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
     camera.position.z = 500;
     cameraRef.current = camera;
 
-    const isMobile = width < MOBILE_BREAKPOINT;
+    // Judge "mobile" by the smaller viewport dimension so landscape phones get
+    // the mobile render budget too, not the desktop one (MUX-05)
+    const isMobile = Math.min(width, height) < MOBILE_BREAKPOINT;
     let renderer: THREE.WebGLRenderer;
     try {
       renderer = new THREE.WebGLRenderer({ alpha: true, antialias: !isMobile });
@@ -123,6 +133,24 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
     renderer.setClearColor(0x000000, 0);
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
+
+    // Backdrop blur is GPU-heavy on phones — swap it for the denser plain fill (MUX-06)
+    if (isMobile && overlayRef.current) {
+      overlayRef.current.style.setProperty('backdrop-filter', 'none');
+      overlayRef.current.style.setProperty('-webkit-backdrop-filter', 'none');
+      overlayRef.current.style.backgroundColor = WARP_OVERLAY_FILL_MOBILE;
+    }
+
+    // Click target: fixed box, moved/scaled with compositor-only transforms so
+    // the per-frame tracking never invalidates layout (PERF-06)
+    const HIT_BASE = 100;
+    if (clickTargetRef.current) {
+      clickTargetRef.current.style.left = '0px';
+      clickTargetRef.current.style.top = '0px';
+      clickTargetRef.current.style.width = `${HIT_BASE}px`;
+      clickTargetRef.current.style.height = `${HIT_BASE}px`;
+    }
+    let prevTargetVisible: boolean | null = null;
 
     // ============= PARTICLE INIT — static attributes (set once, never updated) =============
     const mobileFactor = isMobile ? 0.5 : 1;
@@ -453,15 +481,20 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
       const screenY = -(mainBall.centerY + offsetY + pLocalY) + cachedH / 2;
       const screenSize = planetRadius * 2 * depthScale * pulse;
 
-      if (clickTargetRef.current && !isFlying) {
-        const hitSize = Math.max(screenSize * 3, 80);
-        clickTargetRef.current.style.left = `${screenX - hitSize / 2}px`;
-        clickTargetRef.current.style.top = `${screenY - hitSize / 2}px`;
-        clickTargetRef.current.style.width = `${hitSize}px`;
-        clickTargetRef.current.style.height = `${hitSize}px`;
-        const isVisible = pDepthFactor > 0.15;
-        clickTargetRef.current.style.pointerEvents = isVisible ? 'auto' : 'none';
-        clickTargetRef.current.style.cursor = isVisible ? 'pointer' : 'default';
+      if (clickTargetRef.current) {
+        if (isFlying) {
+          prevTargetVisible = null; // force a pointerEvents/cursor rewrite after the warp
+        } else {
+          const hitSize = Math.max(screenSize * 3, 80);
+          clickTargetRef.current.style.transform =
+            `translate3d(${screenX - HIT_BASE / 2}px, ${screenY - HIT_BASE / 2}px, 0) scale(${hitSize / HIT_BASE})`;
+          const isVisible = pDepthFactor > 0.15;
+          if (isVisible !== prevTargetVisible) {
+            prevTargetVisible = isVisible;
+            clickTargetRef.current.style.pointerEvents = isVisible ? 'auto' : 'none';
+            clickTargetRef.current.style.cursor = isVisible ? 'pointer' : 'default';
+          }
+        }
       }
 
       renderer.render(scene, camera);
@@ -544,7 +577,7 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
       gsap.to(material.uniforms.uWarpProgress, { value: 0, duration: 0.8, ease: 'power2.out', overwrite: 'auto' });
     }
     if (overlayRef.current) {
-      gsap.to(overlayRef.current, { opacity: 0, duration: 0.5, ease: 'power2.out', overwrite: 'auto' });
+      gsap.to(overlayRef.current, { autoAlpha: 0, duration: 0.5, ease: 'power2.out', overwrite: 'auto' });
     }
   }), []);
 
@@ -580,7 +613,9 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
         role='button'
         tabIndex={0}
         aria-label='Fly to portfolio'
-        onClick={handlePlanetClick}
+        // pointerdown fires at touch start, before the orbiting planet moves out
+        // from under the finger (MUX-07)
+        onPointerDown={handlePlanetClick}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
@@ -600,10 +635,11 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
         style={{
           position: 'fixed',
           inset: 0,
-          backgroundColor: 'rgba(245, 241, 232, 0.85)',
+          backgroundColor: WARP_OVERLAY_FILL,
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
           opacity: 0,
+          visibility: 'hidden', // gsap autoAlpha shows it only during the warp (PERF-07)
           pointerEvents: 'none',
           zIndex: 100,
         }}

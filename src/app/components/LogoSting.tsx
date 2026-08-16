@@ -63,8 +63,8 @@ const BLOOM_GRADIENT =
 // stamps down from the camera with an impact — then the ring wraps the finished
 // word with a slight spin, and the glint/flash lock the badge in.
 const T = {
-  stampStart: 0.3, // beat of empty backdrop before the first letter hits
-  stampInterval: 0.2, // one letter per beat, falls overlapping the settles
+  stampStart: 0.3, // beat of empty backdrop before the first part hits
+  stampInterval: 0.3, // one word part per beat (ra, then IT, then is)
   stampDur: 0.18, // accelerating fall from camera down onto the plane
   ringDur: 0.45, // ring arrives with an overshoot settle, spinning as it comes
   glintDur: 0.55, // fast specular pass across the ring
@@ -195,6 +195,7 @@ const LogoSting = ({
     // the red side tokens render smaller
     const tokens = word.split(' ').filter(Boolean);
     const letterMeshes: THREE.Mesh[] = [];
+    const tokenMeshGroups: THREE.Mesh[][] = [];
     let minY = Infinity;
     let maxY = -Infinity;
     let cursor = 0;
@@ -211,6 +212,7 @@ const LogoSting = ({
       if (tokenIndex > 0) cursor += SEGMENT_GAP;
       const accent = isAccentToken(token);
       const tokenScale = accent ? 1 : SIDE_TOKEN_SCALE;
+      const tokenMeshes: THREE.Mesh[] = [];
       let firstInToken = true;
       for (const ch of token) {
         const glyph = buildGlyph(ch);
@@ -245,8 +247,10 @@ const LogoSting = ({
         firstInToken = false;
         mesh.position.x = cursor + letterWidth / 2;
         cursor += letterWidth;
+        tokenMeshes.push(mesh);
         letterMeshes.push(mesh);
       }
+      tokenMeshGroups.push(tokenMeshes);
     });
 
     const wordWidth = cursor;
@@ -366,7 +370,7 @@ const LogoSting = ({
     const groupY = group.position.y;
 
     // Continuous slow camera drift under the whole intro — nothing sits still
-    const sublineAt = T.stampStart + letterMeshes.length * T.stampInterval + 0.05;
+    const sublineAt = T.stampStart + tokenMeshGroups.length * T.stampInterval + 0.05;
     const ringAt = sublineAt + (sublineMeshes.length > 0 ? 0.35 : 0);
     tl.fromTo(
       camera.position,
@@ -375,29 +379,33 @@ const LogoSting = ({
       0
     );
 
-    // Stamp phase: each letter fades in mid-fall (no pop), accelerates onto
-    // the plane with a forward tilt that levels out late, and lands with a
-    // squash-and-stretch settle, soft camera kick, and micro-flash. Falls
-    // overlap the previous letter's settle so the phrase reads as one motion.
-    letterMeshes.forEach((mesh, i) => {
+    // Stamp phase: the mark arrives in three parts — ra, then IT, then is —
+    // each token falling and landing as ONE unit. Letters fade in mid-fall
+    // (no pop), accelerate onto the plane with a forward tilt that levels out
+    // late, and land with a squash-and-stretch settle; one camera kick and
+    // micro-flash per token.
+    tokenMeshGroups.forEach((tokenMeshes, i) => {
       const at = T.stampStart + i * T.stampInterval;
       const land = at + T.stampDur;
-      mesh.visible = false;
-      const material = mesh.material as THREE.MeshStandardMaterial;
+      for (const mesh of tokenMeshes) {
+        mesh.visible = false;
+        const material = mesh.material as THREE.MeshStandardMaterial;
+        tl
+          .set(mesh, { visible: true }, at)
+          .fromTo(material, { opacity: 0 }, { opacity: 1, duration: 0.1, ease: 'power1.out' }, at)
+          .fromTo(mesh.position, { z: finalDist * 0.6 }, { z: 0, duration: T.stampDur, ease: 'expo.in' }, at)
+          .fromTo(mesh.rotation, { x: -0.45 }, { x: 0, duration: 0.28, ease: 'back.out(3)' }, at)
+          .to(mesh.scale, { y: 0.92, x: 1.05, duration: 0.05, ease: 'power2.in' }, land)
+          .to(mesh.scale, { y: 1, x: 1, duration: 0.24, ease: 'elastic.out(1.8, 0.45)' }, land + 0.05);
+      }
       tl
-        .set(mesh, { visible: true }, at)
-        .fromTo(material, { opacity: 0 }, { opacity: 1, duration: 0.1, ease: 'power1.out' }, at)
-        .fromTo(mesh.position, { z: finalDist * 0.6 }, { z: 0, duration: T.stampDur, ease: 'expo.in' }, at)
-        .fromTo(mesh.rotation, { x: -0.45 }, { x: 0, duration: 0.28, ease: 'back.out(3)' }, at)
-        .to(mesh.scale, { y: 0.92, x: 1.05, duration: 0.05, ease: 'power2.in' }, land)
-        .to(mesh.scale, { y: 1, x: 1, duration: 0.24, ease: 'elastic.out(1.8, 0.45)' }, land + 0.05)
         .fromTo(
           camera.position,
-          { y: groupY - 0.05 },
+          { y: groupY - 0.06 },
           { y: groupY, duration: 0.2, ease: 'power2.out', overwrite: 'auto' },
           land
         )
-        .to(flashRef.current, { autoAlpha: 0.12, duration: 0.04, ease: 'power1.in' }, land)
+        .to(flashRef.current, { autoAlpha: 0.14, duration: 0.04, ease: 'power1.in' }, land)
         .to(flashRef.current, { autoAlpha: 0, duration: 0.12, ease: 'power1.out' }, land + 0.04);
     });
 

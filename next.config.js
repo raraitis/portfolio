@@ -48,6 +48,16 @@ const nextConfig = {
           },
         ],
       },
+      {
+        // Immutable caching for self-hosted fonts (content-stable; rename on change)
+        source: '/fonts/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
     ];
   },
 };

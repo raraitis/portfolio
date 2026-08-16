@@ -2,6 +2,7 @@
 
 import { m } from '@/lib/motion';
 import { emit } from '@/lib/events';
+import SectionShell from './SectionShell';
 import { TAGLINE } from '@/lib/content';
 import { shimmer } from '@/styles/colors';
 
@@ -14,78 +15,70 @@ const CONTACT_LINK_CLASS =
 
 const MeSection = () => {
   return (
-    <m.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.3, ease: 'easeOut' }}
-      className='min-h-dvh relative z-10 flex items-center justify-center sm:justify-end px-5 sm:px-12 lg:pr-20'
-    >
-      <div className='max-w-full sm:max-w-2xl w-full py-16 sm:py-20'>
-        {/* About Section */}
-        <div className='mb-6 sm:mb-16'>
-          <h1 className='text-3xl sm:text-5xl md:text-6xl font-light text-gray-900 mb-3 sm:mb-8 text-center sm:text-left'>
-            Me
-          </h1>
-        </div>
+    <SectionShell duration={0.3}>
+      {/* About Section */}
+      <div className='mb-6 sm:mb-16'>
+        <h1 className='text-3xl sm:text-5xl md:text-6xl font-light text-gray-900 mb-3 sm:mb-8 text-center sm:text-left'>
+          Me
+        </h1>
+      </div>
 
-        <div className='text-center sm:text-left mb-8 sm:mb-20'>
-          <p
-            className='text-sm leading-relaxed sm:text-lg text-gray-500 font-alien relative px-2 sm:px-0'
+      <div className='text-center sm:text-left mb-8 sm:mb-20'>
+        <p
+          className='text-sm leading-relaxed sm:text-lg text-gray-500 font-alien relative px-2 sm:px-0'
+          style={{
+            background: SHIMMER_BASE_GRADIENT,
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+          }}
+        >
+          <m.span
+            initial={{ backgroundPosition: '200% 0' }}
+            animate={{ backgroundPosition: '-200% 0' }}
+            transition={{
+              duration: 2,
+              delay: 0.5,
+              ease: 'linear',
+              repeat: 5,
+              repeatType: 'loop',
+            }}
             style={{
-              background: SHIMMER_BASE_GRADIENT,
+              background: SHIMMER_SWEEP_GRADIENT,
+              backgroundSize: '200% 100%',
               WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
             }}
           >
-            <m.span
-              initial={{ backgroundPosition: '200% 0' }}
-              animate={{ backgroundPosition: '-200% 0' }}
-              transition={{
-                duration: 2,
-                delay: 0.5,
-                ease: 'linear',
-                repeat: 5,
-                repeatType: 'loop',
-              }}
-              style={{
-                background: SHIMMER_SWEEP_GRADIENT,
-                backgroundSize: '200% 100%',
-                WebkitBackgroundClip: 'text',
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-              }}
-            >
-              {TAGLINE}
-            </m.span>
             {TAGLINE}
-          </p>
-        </div>
+          </m.span>
+          {TAGLINE}
+        </p>
+      </div>
 
-        {/* Contact Section */}
-        <div className='text-center sm:text-left'>
-          <div className='flex flex-wrap items-center justify-center sm:justify-start gap-1 sm:gap-4'>
-            <a href='mailto:raraitis@gmail.com' className={CONTACT_LINK_CLASS}>
-              EMAIL
-            </a>
-            <span className='text-gray-300 font-light select-none'>|</span>
-            <a href='tel:+37126351731' className={CONTACT_LINK_CLASS}>
-              PHONE
-            </a>
-            <span className='text-gray-300 font-light select-none'>|</span>
-            <button
-              onClick={() => emit('warp-trigger')}
-              className={`${CONTACT_LINK_CLASS} bg-transparent border-none cursor-pointer`}
-            >
-              PORTFOLIO
-            </button>
-          </div>
+      {/* Contact Section */}
+      <div className='text-center sm:text-left'>
+        <div className='flex flex-wrap items-center justify-center sm:justify-start gap-1 sm:gap-4'>
+          <a href='mailto:raraitis@gmail.com' className={CONTACT_LINK_CLASS}>
+            EMAIL
+          </a>
+          <span className='text-gray-300 font-light select-none'>|</span>
+          <a href='tel:+37126351731' className={CONTACT_LINK_CLASS}>
+            PHONE
+          </a>
+          <span className='text-gray-300 font-light select-none'>|</span>
+          <button
+            onClick={() => emit('warp-trigger')}
+            className={`${CONTACT_LINK_CLASS} bg-transparent border-none cursor-pointer`}
+          >
+            PORTFOLIO
+          </button>
         </div>
       </div>
-    </m.div>
+    </SectionShell>
   );
 };
 

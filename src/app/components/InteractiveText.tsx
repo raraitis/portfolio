@@ -56,6 +56,11 @@ const DraggableWord = ({ word, initialX, initialY }: WordProps) => {
 
   const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
+  // Monotonic id of the current drop→scatter→reassembly chain. Every timer
+  // callback captures the generation it was scheduled under and no-ops if a
+  // newer drag has started since — stale chains can never fight a live one.
+  const generationRef = useRef(0);
+
   const clearPendingTimeouts = useCallback(() => {
     for (const id of timeoutsRef.current) clearTimeout(id);
     timeoutsRef.current = [];
@@ -64,18 +69,26 @@ const DraggableWord = ({ word, initialX, initialY }: WordProps) => {
   useEffect(() => clearPendingTimeouts, [clearPendingTimeouts]);
 
   const bind = useDrag(
-    ({ active, first, movement: [mx, my] }) => {
+    ({ active, first, offset: [ox, oy] }) => {
       setIsDragging(active);
 
       if (active) {
-        if (first) clearPendingTimeouts();
-        wordX.set(initialX + mx);
-        wordY.set(initialY + my);
+        if (first) {
+          // Interrupt any in-flight drop/scatter/reassembly: invalidate its
+          // timers, freeze the springs where they are, and restore the whole
+          // word so it's grabbable in place (the user can catch it mid-drop).
+          generationRef.current += 1;
+          clearPendingTimeouts();
+          wordX.stop();
+          wordY.stop();
+          wordScale.stop();
+          setIsScattered(false);
+          setScatteredLetters((prev) => (prev.length === 0 ? prev : []));
+        }
+        wordX.set(ox);
+        wordY.set(oy);
         wordScale.start({ to: 1.1, config: springConfig.scale });
       } else {
-        const oy = wordY.get();
-        const ox = wordX.get();
-
         // Drop floor: 300px above the viewport bottom, clamped so a short
         // viewport can't put the floor above the word's start position
         const screenHeight =
@@ -89,10 +102,12 @@ const DraggableWord = ({ word, initialX, initialY }: WordProps) => {
         });
 
         // Scatter at ~60% of the drop so both the fall and the burst are visible
+        const generation = generationRef.current;
         const scatterDelay = Math.max(100, Math.min(400, dropDistance * 2)); // Proportional to drop distance
         timeoutsRef.current.push(
           setTimeout(() => {
-            scatterWord(ox, oy + dropDistance * 0.6);
+            if (generation !== generationRef.current) return;
+            scatterWord(generation, ox, oy + dropDistance * 0.6);
           }, scatterDelay)
         );
       }
@@ -103,7 +118,8 @@ const DraggableWord = ({ word, initialX, initialY }: WordProps) => {
     }
   );
 
-  const scatterWord = (centerX: number, centerY: number) => {
+  const scatterWord = (generation: number, centerX: number, centerY: number) => {
+    if (generation !== generationRef.current) return;
     setIsScattered(true);
 
     const scatterCenterX = centerX;
@@ -129,6 +145,7 @@ const DraggableWord = ({ word, initialX, initialY }: WordProps) => {
     // After 1.5s, reassemble: spring letters back and restore scale
     timeoutsRef.current.push(
       setTimeout(() => {
+        if (generation !== generationRef.current) return;
         setIsScattered(false);
         setScatteredLetters([]);
 

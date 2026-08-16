@@ -865,7 +865,16 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
       />
       <div
         ref={clickTargetRef}
+        role='button'
+        tabIndex={0}
+        aria-label='Fly to portfolio'
         onClick={handlePlanetClick}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handlePlanetClick();
+          }
+        }}
         style={{
           position: 'fixed',
           borderRadius: '50%',

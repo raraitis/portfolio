@@ -4,6 +4,11 @@ export const zIndex = {
   auto: 'auto',
   base: 0,
   docked: 10,
+  // InteractiveText hero-word layers (resting sits at the nav's z-50 tier;
+  // scattered letters and the dragged word lift above it)
+  heroWordResting: 50,
+  heroLetterScattered: 60,
+  heroWordDragging: 100,
   dropdown: 1000,
   sticky: 1100,
   banner: 1200,

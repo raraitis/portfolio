@@ -5,6 +5,7 @@ import { animated, useSpringValue, useSpring } from '@react-spring/web';
 import { useDrag } from '@use-gesture/react';
 import { useDevice } from '../hooks/useDevice';
 import { nameText, nameTextMobile } from '../../styles';
+import { zIndex } from '../../styles/sizing';
 
 interface WordProps {
   word: string;
@@ -169,7 +170,7 @@ const DraggableWord = ({ word, initialX, initialY }: WordProps) => {
         y: wordY,
         scale: wordScale,
         transformOrigin: 'center',
-        zIndex: isDragging ? 100 : 50,
+        zIndex: isDragging ? zIndex.heroWordDragging : zIndex.heroWordResting,
         touchAction: 'none',
         cursor: isDragging ? 'grabbing' : 'grab',
         userSelect: 'none' as const,
@@ -236,7 +237,7 @@ const ScatteredLetter = React.memo(({
         rotate: rotation,
         scale,
         transformOrigin: 'center',
-        zIndex: 60,
+        zIndex: zIndex.heroLetterScattered,
         pointerEvents: 'none',
         ...textStyles,
         opacity: 0.9,

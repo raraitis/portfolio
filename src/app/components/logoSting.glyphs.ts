@@ -79,32 +79,29 @@ const GLYPHS: Record<string, Glyph> = {
   },
 };
 
-const GLYPH_SPACING = 0.14;
+/** Letter-advance gap between glyphs, in text-size units. */
+export const GLYPH_SPACING = 0.14;
 
-/** Shapes for one word token, glyphs advanced along x; width is the total advance. */
-export function buildTokenShapes(token: string): { shapes: THREE.Shape[]; width: number } {
+/** Shapes for one character at the local origin, or null if not in the set. */
+export function buildGlyph(ch: string): { shapes: THREE.Shape[]; width: number } | null {
+  const glyph = GLYPHS[ch];
+  if (!glyph) return null; // glyph set intentionally covers only the sting words
   const shapes: THREE.Shape[] = [];
-  let cursor = 0;
-  for (const ch of token) {
-    const glyph = GLYPHS[ch];
-    if (!glyph) continue; // glyph set intentionally covers only the sting words
-    for (const piece of glyph.pieces) {
-      const shape = new THREE.Shape();
-      piece.outline.forEach(([x, y], i) =>
-        i === 0 ? shape.moveTo(x + cursor, y) : shape.lineTo(x + cursor, y)
+  for (const piece of glyph.pieces) {
+    const shape = new THREE.Shape();
+    piece.outline.forEach(([x, y], i) =>
+      i === 0 ? shape.moveTo(x, y) : shape.lineTo(x, y)
+    );
+    shape.closePath();
+    for (const hole of piece.holes ?? []) {
+      const path = new THREE.Path();
+      hole.forEach(([x, y], i) =>
+        i === 0 ? path.moveTo(x, y) : path.lineTo(x, y)
       );
-      shape.closePath();
-      for (const hole of piece.holes ?? []) {
-        const path = new THREE.Path();
-        hole.forEach(([x, y], i) =>
-          i === 0 ? path.moveTo(x + cursor, y) : path.lineTo(x + cursor, y)
-        );
-        path.closePath();
-        shape.holes.push(path);
-      }
-      shapes.push(shape);
+      path.closePath();
+      shape.holes.push(path);
     }
-    cursor += glyph.width + GLYPH_SPACING;
+    shapes.push(shape);
   }
-  return { shapes, width: Math.max(0, cursor - GLYPH_SPACING) };
+  return { shapes, width: glyph.width };
 }

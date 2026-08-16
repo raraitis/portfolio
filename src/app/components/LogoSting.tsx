@@ -10,7 +10,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import gsap from 'gsap';
-import { buildTokenShapes } from './logoSting.glyphs';
+import { buildGlyph, GLYPH_SPACING } from './logoSting.glyphs';
 import { MOBILE_BREAKPOINT, zIndex } from '@/styles/sizing';
 import { colors, shimmer } from '@/styles/colors';
 import { fonts } from '@/styles/typography';
@@ -50,19 +50,17 @@ const RING_PAD = 0.55;
 const BLOOM_GRADIENT =
   'radial-gradient(circle at 50% 46%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0) 60%)';
 
-// Timeline choreography (seconds from sting start) — canonical badge-sting
-// phrasing: camera planted, the badge itself glides in from frame-left while
-// swinging face-on with a slight overshoot, the glint rakes the ring at the
-// lock-in, then a living hold with a wobble and a slower return glaze.
+// Timeline choreography (seconds; later beats are computed from letter count).
+// Documented phrasing for this era: elements arrive ONE PER BEAT — each letter
+// stamps down from the camera with an impact — then the ring wraps the finished
+// word with a slight spin, and the glint/flash lock the badge in.
 const T = {
-  entranceDur: 1.15, // glide + swing + scale overshoot
-  glintAt: 0.95, // fast specular pass across the ring
-  glintDur: 0.55,
-  flashAt: 1.12, // bloom + full-frame flash as the mark hits center
-  taglineAt: 1.5,
-  glazeAt: 1.9, // slower return pass across the letters
-  glazeDur: 1.3,
-  endAt: 4.2,
+  stampStart: 0.35, // beat of empty backdrop before the first letter hits
+  stampInterval: 0.22, // one letter per beat
+  stampDur: 0.16, // fall from camera down onto the plane
+  ringDur: 0.3, // ring wraps the finished word
+  glintDur: 0.55, // fast specular pass across the ring
+  glazeDur: 1.3, // slower return pass across the letters
 } as const;
 
 /** Uppercase tokens (the "IT" in "ra IT is") get the blue; the rest the red. */
@@ -179,57 +177,67 @@ const LogoSting = ({
       frameId = requestAnimationFrame(animate);
     };
 
-    // Wordmark: custom angular glyphs, built synchronously (no font fetch)
+    // Wordmark: custom angular glyphs, one mesh per LETTER so each can stamp
+    // in on its own beat. Two shared materials cover the red/blue split —
+    // matte-leaning so the colors read as flat print, with just enough gloss
+    // for the glint sweep to register.
     const shear = new THREE.Matrix4().makeShear(ITALIC_SHEAR, 0, 0, 0, 0, 0);
+    const redMaterial = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(WORD_RED),
+      metalness: 0.08,
+      roughness: 0.32,
+      envMapIntensity: 0.7,
+    });
+    const blueMaterial = redMaterial.clone();
+    blueMaterial.color = new THREE.Color(WORD_BLUE);
+    materials.push(redMaterial, blueMaterial);
+
     const tokens = word.split(' ').filter(Boolean);
-    const meshes: THREE.Mesh[] = [];
-    const widths: number[] = [];
+    const letterMeshes: THREE.Mesh[] = [];
     let minY = Infinity;
     let maxY = -Infinity;
+    let cursor = 0;
 
-    for (const token of tokens) {
-      const { shapes } = buildTokenShapes(token);
-      const geometry = new THREE.ExtrudeGeometry(shapes, {
-        depth: 0.32,
-        bevelEnabled: true,
-        bevelThickness: 0.03,
-        bevelSize: 0.02,
-        bevelSegments: 2,
-      });
-      // Shear about the baseline origin, then center x/z ONLY — y stays
-      // authored so every token shares one baseline (like a logotype)
-      geometry.applyMatrix4(shear);
-      geometry.computeBoundingBox();
-      const raw = geometry.boundingBox!;
-      geometry.translate(-(raw.min.x + raw.max.x) / 2, 0, -(raw.min.z + raw.max.z) / 2);
-      geometry.computeBoundingBox();
-      const bbox = geometry.boundingBox!;
-      widths.push(bbox.max.x - bbox.min.x);
-      minY = Math.min(minY, bbox.min.y);
-      maxY = Math.max(maxY, bbox.max.y);
-      geometries.push(geometry);
+    tokens.forEach((token, tokenIndex) => {
+      if (tokenIndex > 0) cursor += SEGMENT_GAP - GLYPH_SPACING;
+      const accent = isAccentToken(token);
+      for (const ch of token) {
+        const glyph = buildGlyph(ch);
+        if (!glyph) continue;
+        const geometry = new THREE.ExtrudeGeometry(glyph.shapes, {
+          depth: 0.32,
+          bevelEnabled: true,
+          bevelThickness: 0.03,
+          bevelSize: 0.02,
+          bevelSegments: 2,
+        });
+        // Shear about the baseline origin, then center x/z ONLY — y stays
+        // authored so every letter shares one baseline (like a logotype)
+        geometry.applyMatrix4(shear);
+        geometry.computeBoundingBox();
+        const raw = geometry.boundingBox!;
+        geometry.translate(-(raw.min.x + raw.max.x) / 2, 0, -(raw.min.z + raw.max.z) / 2);
+        geometry.computeBoundingBox();
+        const bbox = geometry.boundingBox!;
+        minY = Math.min(minY, bbox.min.y);
+        maxY = Math.max(maxY, bbox.max.y);
+        geometries.push(geometry);
 
-      // Matte-leaning finish keeps the red/blue reading as flat print, with
-      // just enough gloss for the glint sweep to register
-      const material = new THREE.MeshStandardMaterial({
-        color: new THREE.Color(isAccentToken(token) ? WORD_BLUE : WORD_RED),
-        metalness: 0.08,
-        roughness: 0.32,
-        envMapIntensity: 0.7,
-      });
-      materials.push(material);
-      meshes.push(new THREE.Mesh(geometry, material));
-    }
-
-    const wordWidth = widths.reduce((a, b) => a + b, 0) + SEGMENT_GAP * (tokens.length - 1);
-    const wordMidY = (minY + maxY) / 2;
-    let cursor = -wordWidth / 2;
-    meshes.forEach((mesh, i) => {
-      mesh.position.x = cursor + widths[i] / 2;
-      mesh.position.y = -wordMidY; // shared shift keeps the common baseline
-      cursor += widths[i] + SEGMENT_GAP;
-      group.add(mesh);
+        const mesh = new THREE.Mesh(geometry, accent ? blueMaterial : redMaterial);
+        const letterWidth = bbox.max.x - bbox.min.x;
+        mesh.position.x = cursor + letterWidth / 2;
+        cursor += letterWidth + GLYPH_SPACING;
+        letterMeshes.push(mesh);
+      }
     });
+
+    const wordWidth = cursor - GLYPH_SPACING;
+    const wordMidY = (minY + maxY) / 2;
+    for (const mesh of letterMeshes) {
+      mesh.position.x -= wordWidth / 2;
+      mesh.position.y = -wordMidY; // shared shift keeps the common baseline
+      group.add(mesh);
+    }
 
     // Silver oval ring: flat extruded ellipse band with a bevel, like a badge
     ovalX = wordWidth / 2 + RING_PAD + RING_WIDTH;
@@ -277,35 +285,73 @@ const LogoSting = ({
 
     const tl = gsap.timeline();
     timelineRef.current = tl;
+    const groupY = group.position.y;
+
+    // Stamp phase: camera planted, each letter falls from the camera onto the
+    // plane on its own beat, with a kick + micro-flash at every landing
+    letterMeshes.forEach((mesh, i) => {
+      const at = T.stampStart + i * T.stampInterval;
+      const land = at + T.stampDur;
+      mesh.visible = false;
+      tl
+        .set(mesh, { visible: true }, at)
+        .fromTo(mesh.position, { z: finalDist * 0.72 }, { z: 0, duration: T.stampDur, ease: 'power3.in' }, at)
+        .fromTo(
+          camera.position,
+          { y: groupY - 0.07 },
+          { y: groupY, duration: 0.2, ease: 'power2.out', overwrite: 'auto' },
+          land
+        )
+        .to(flashRef.current, { autoAlpha: 0.18, duration: 0.04, ease: 'power1.in' }, land)
+        .to(flashRef.current, { autoAlpha: 0, duration: 0.12, ease: 'power1.out' }, land + 0.04);
+    });
+
+    // Ring phase: the ring wraps the finished word, settles with a slight
+    // spin, and the big glint/flash lock the badge in
+    const ringAt = T.stampStart + letterMeshes.length * T.stampInterval + 0.1;
+    const ringLand = ringAt + T.ringDur;
+    ringMesh.visible = false;
+    fillMesh.visible = false;
     tl
-      // Entrance: badge glides in from frame-left, swinging face-on with a
-      // slight overshoot; the camera stays planted like the original stings
-      .fromTo(group.position, { x: -ovalX * 1.9 }, { x: 0, duration: T.entranceDur, ease: 'power3.out' }, 0)
-      .fromTo(group.rotation, { y: -2.3, x: 0.38 }, { y: 0, x: 0, duration: T.entranceDur, ease: 'back.out(1.6)' }, 0)
+      .set(ringMesh, { visible: true }, ringAt)
+      .set(fillMesh, { visible: true }, ringAt)
       .fromTo(
-        group.scale,
-        { x: 0.82, y: 0.82, z: 0.82 },
-        { x: 1, y: 1, z: 1, duration: T.entranceDur, ease: 'back.out(2)' },
-        0
+        ringMesh.scale,
+        { x: 1.35, y: 1.35, z: 1 },
+        { x: 1, y: 1, z: 1, duration: T.ringDur, ease: 'power3.in' },
+        ringAt
       )
-      // Rotating environment keeps the reflections traveling during the swing
-      .fromTo(scene.environmentRotation, { y: 0.8 }, { y: -0.5, duration: 4.0, ease: 'power1.out' }, 0)
+      .fromTo(
+        fillMesh.scale,
+        { x: 1.35, y: 1.35, z: 1 },
+        { x: 1, y: 1, z: 1, duration: T.ringDur, ease: 'power3.in' },
+        ringAt
+      )
+      .fromTo(ringMesh.rotation, { z: -0.16 }, { z: 0, duration: 0.8, ease: 'power2.out' }, ringLand)
+      .fromTo(
+        camera.position,
+        { y: groupY - 0.1 },
+        { y: groupY, duration: 0.25, ease: 'power2.out', overwrite: 'auto' },
+        ringLand
+      )
+      // Rotating environment keeps the reflections traveling
+      .fromTo(scene.environmentRotation, { y: 0.8 }, { y: -0.5, duration: 3.5, ease: 'power1.out' }, ringAt)
       .fromTo(
         sweepLight.position,
         { x: -ovalX },
         { x: ovalX, duration: T.glintDur, ease: 'power2.inOut' },
-        T.glintAt
+        ringLand + 0.05
       )
-      .to(flashRef.current, { autoAlpha: 0.85, duration: 0.08, ease: 'power1.in' }, T.flashAt)
-      .to(flashRef.current, { autoAlpha: 0, duration: 0.45, ease: 'power2.out' }, T.flashAt + 0.08)
-      .to(glowRef.current, { autoAlpha: 0.75, duration: 0.12, ease: 'power1.in' }, T.flashAt)
-      .to(glowRef.current, { autoAlpha: 0, duration: 0.9, ease: 'power2.out' }, T.flashAt + 0.12)
-      .to(taglineRef.current, { autoAlpha: 1, y: 0, duration: 0.6, ease: 'power2.out' }, T.taglineAt)
+      .to(flashRef.current, { autoAlpha: 0.85, duration: 0.08, ease: 'power1.in' }, ringLand)
+      .to(flashRef.current, { autoAlpha: 0, duration: 0.45, ease: 'power2.out' }, ringLand + 0.08)
+      .to(glowRef.current, { autoAlpha: 0.75, duration: 0.12, ease: 'power1.in' }, ringLand)
+      .to(glowRef.current, { autoAlpha: 0, duration: 0.9, ease: 'power2.out' }, ringLand + 0.12)
+      .to(taglineRef.current, { autoAlpha: 1, y: 0, duration: 0.6, ease: 'power2.out' }, ringLand + 0.5)
       // Living hold: perpetual gentle wobble, slow push-in, and a return glaze
-      .to(group.rotation, { y: 0.055, duration: 1.6, ease: 'sine.inOut', yoyo: true, repeat: -1 }, T.taglineAt)
-      .to(camera.position, { z: finalDist * 0.965, duration: 2.4, ease: 'sine.out' }, T.taglineAt)
-      .to(sweepLight.position, { x: -ovalX, y: 0.9, duration: T.glazeDur, ease: 'sine.inOut' }, T.glazeAt)
-      .add(finish, T.endAt);
+      .to(group.rotation, { y: 0.055, duration: 1.6, ease: 'sine.inOut', yoyo: true, repeat: -1 }, ringLand + 0.5)
+      .to(camera.position, { z: finalDist * 0.965, duration: 2.4, ease: 'sine.out', overwrite: 'auto' }, ringLand + 0.5)
+      .to(sweepLight.position, { x: -ovalX, y: 0.9, duration: T.glazeDur, ease: 'sine.inOut' }, ringLand + 0.9)
+      .add(finish, ringLand + 2.6);
 
     frameId = requestAnimationFrame(animate);
 

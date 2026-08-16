@@ -25,7 +25,7 @@ const MeSection = () => {
 
       <div className='text-center sm:text-left mb-8 sm:mb-20'>
         <p
-          className='text-sm leading-relaxed sm:text-lg text-gray-500 font-alien relative px-2 sm:px-0'
+          className='text-[15px] leading-relaxed sm:text-lg text-gray-500 font-alien relative px-2 sm:px-0'
           style={{
             background: SHIMMER_BASE_GRADIENT,
             WebkitBackgroundClip: 'text',

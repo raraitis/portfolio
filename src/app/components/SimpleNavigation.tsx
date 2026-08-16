@@ -81,7 +81,7 @@ const SimpleNavigation = () => {
                   handleNavigate(item.section);
                 }
               }}
-              className='text-xs sm:text-base tracking-wide text-gray-600 hover:text-gray-800 active:text-gray-900 transition-colors select-none font-alien bg-transparent border-none cursor-pointer py-3 px-2 min-h-[44px] min-w-[44px]'
+              className='text-[13px] sm:text-base tracking-wide text-gray-600 hover:text-gray-800 active:text-gray-900 transition-colors select-none font-alien bg-transparent border-none cursor-pointer py-3 px-2 min-h-[44px] min-w-[44px]'
             >
               {item.word}
             </button>

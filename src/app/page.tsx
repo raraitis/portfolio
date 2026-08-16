@@ -5,7 +5,6 @@ import { m, LazyMotion, AnimatePresence, domAnimation } from '@/lib/motion';
 import InteractiveText from './components/InteractiveText';
 import MeSection from './components/MeSection';
 import PortfolioSection from './components/PortfolioSection';
-import GameSection from './components/GameSection';
 import { on, emit, type SectionName } from '@/lib/events';
 
 export default function HomePage() {
@@ -25,8 +24,6 @@ export default function HomePage() {
         return <MeSection key='me' />;
       case 'portfolio':
         return <PortfolioSection key='portfolio' />;
-      case 'game':
-        return <GameSection key='game' />;
       default:
         return (
           <m.div

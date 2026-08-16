@@ -1,17 +1,12 @@
 // Type-safe event bus (pub/sub) for cross-component section/navigation events.
 
-export type SectionName = 'home' | 'me' | 'portfolio' | 'game';
+export type SectionName = 'home' | 'me' | 'portfolio';
 
 type EventMap = {
   'navigate': SectionName;
   'section-changed': SectionName;
   'warp-trigger': void;
   'background-section': SectionName;
-  // Game events
-  'game-start': void;
-  'game-pause': void;
-  'game-resume': void;
-  'game-score': number;
 };
 
 type Callback<K extends keyof EventMap> =

@@ -11,7 +11,7 @@ interface NavItem {
 }
 
 const NAV_ITEMS: readonly NavItem[] = [
-  { word: 'HOME PLANET', section: 'home', useWarp: false, visibleOn: ['me', 'portfolio', 'game'] },
+  { word: 'HOME PLANET', section: 'home', useWarp: false, visibleOn: ['me', 'portfolio'] },
   { word: 'ME', section: 'me', useWarp: false, visibleOn: ['home'] },
   { word: 'PORTFOLIO', section: 'portfolio', useWarp: true, visibleOn: ['me'] },
 ];

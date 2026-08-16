@@ -37,6 +37,15 @@ export default function RootLayout({
       <body
         className='min-h-svh text-gray-900 font-sans antialiased'
       >
+        {/* Preload the primary display face (body default) — React hoists this
+            into <head>; font preloads require crossOrigin even same-origin */}
+        <link
+          rel='preload'
+          href='/fonts/Alien-Encounters-Regular.ttf'
+          as='font'
+          type='font/ttf'
+          crossOrigin='anonymous'
+        />
         {/* Saturn-colored frame border */}
         <div className='saturn-frame' style={layoutStyles.layout.saturnFrame} />
 

@@ -59,6 +59,12 @@ body {
   will-change: transform;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .animate-spin-slow {
+    animation: none;
+  }
+}
+
 /* Responsive frame border - tighter on mobile to give content more room */
 .saturn-frame {
   margin: 10px;

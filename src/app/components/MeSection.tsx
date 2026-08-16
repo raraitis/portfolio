@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { m } from '@/lib/motion';
 import { emit, on } from '@/lib/events';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 import SectionShell from './SectionShell';
 import { TAGLINE } from '@/lib/content';
 import { shimmer } from '@/styles/colors';
@@ -15,6 +16,8 @@ const CONTACT_LINK_CLASS =
   'text-gray-500 hover:text-black active:text-black transition-colors font-alien text-sm sm:text-base tracking-wider py-3 px-3 min-h-[44px] inline-flex items-center';
 
 const MeSection = () => {
+  // MotionConfig reducedMotion='user' only stops transform animations — the backgroundPosition shimmer needs its own gate.
+  const reducedMotion = useReducedMotion();
   // Pending affordance for the ~10.5s warp (IR-N1): set on 'warp-trigger', cleared on the next 'section-changed'.
   const [warping, setWarping] = useState(false);
 
@@ -40,28 +43,30 @@ const MeSection = () => {
             backgroundClip: 'text',
           }}
         >
-          <m.span
-            initial={{ backgroundPosition: '200% 0' }}
-            animate={{ backgroundPosition: '-200% 0' }}
-            transition={{
-              duration: 2,
-              delay: 0.5,
-              ease: 'linear',
-              repeat: 5,
-              repeatType: 'loop',
-            }}
-            style={{
-              background: SHIMMER_SWEEP_GRADIENT,
-              backgroundSize: '200% 100%',
-              WebkitBackgroundClip: 'text',
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-            }}
-          >
-            {TAGLINE}
-          </m.span>
+          {!reducedMotion && (
+            <m.span
+              initial={{ backgroundPosition: '200% 0' }}
+              animate={{ backgroundPosition: '-200% 0' }}
+              transition={{
+                duration: 2,
+                delay: 0.5,
+                ease: 'linear',
+                repeat: 5,
+                repeatType: 'loop',
+              }}
+              style={{
+                background: SHIMMER_SWEEP_GRADIENT,
+                backgroundSize: '200% 100%',
+                WebkitBackgroundClip: 'text',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+              }}
+            >
+              {TAGLINE}
+            </m.span>
+          )}
           {TAGLINE}
         </p>
       </div>

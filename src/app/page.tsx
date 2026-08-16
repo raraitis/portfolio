@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { m, LazyMotion, AnimatePresence, domAnimation } from '@/lib/motion';
+import { m, LazyMotion, AnimatePresence, MotionConfig, domAnimation } from '@/lib/motion';
 import InteractiveText from './components/InteractiveText';
 import MeSection from './components/MeSection';
 import PortfolioSection from './components/PortfolioSection';
@@ -40,11 +40,13 @@ export default function HomePage() {
 
   return (
     <LazyMotion features={domAnimation}>
-      <main className='relative'>
-        <AnimatePresence mode='wait'>
-          {renderSection()}
-        </AnimatePresence>
-      </main>
+      <MotionConfig reducedMotion='user'>
+        <main className='relative'>
+          <AnimatePresence mode='wait'>
+            {renderSection()}
+          </AnimatePresence>
+        </main>
+      </MotionConfig>
     </LazyMotion>
   );
 }

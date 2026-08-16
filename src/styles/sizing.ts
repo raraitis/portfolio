@@ -42,6 +42,10 @@ export const containers = {
   '2xl': '1536px',
 };
 
+// JS-side mobile cutoff (px). Deliberately 768 (containers.md) — Tailwind
+// styling switches earlier, at sm (640px).
+export const MOBILE_BREAKPOINT = 768;
+
 // Z-index system
 export const zIndex = {
   hide: -1,

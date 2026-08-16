@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import gsap from 'gsap';
 import { on, emit, type SectionName } from '@/lib/events';
+import { MOBILE_BREAKPOINT } from '@/styles/sizing';
 
 interface CosmicDustThreeProps {
   section: SectionName;
@@ -444,7 +445,7 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
     camera.position.z = 500;
     cameraRef.current = camera;
 
-    const isMobile = width < 768;
+    const isMobile = width < MOBILE_BREAKPOINT;
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: !isMobile });
     renderer.setSize(width, height);
     renderer.setPixelRatio(isMobile ? Math.min(window.devicePixelRatio, 1.5) : Math.min(window.devicePixelRatio, 2));

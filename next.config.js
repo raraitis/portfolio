@@ -1,3 +1,21 @@
+// Content Security Policy. 'unsafe-eval' is required only by Next.js dev-mode
+// tooling (react-refresh evaluates modules); production bundles never eval, so
+// it is emitted dev-only. 'unsafe-inline' stays for script-src/style-src: Next
+// injects inline bootstrap scripts that would need nonce plumbing to drop it.
+const isProd = process.env.NODE_ENV === 'production';
+const contentSecurityPolicy = [
+  "default-src 'self'",
+  `script-src 'self' 'unsafe-inline'${isProd ? '' : " 'unsafe-eval'"}`,
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob:",
+  "font-src 'self' data:",
+  "connect-src 'self'",
+  "frame-ancestors 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "object-src 'none'",
+].join('; ');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Standalone output for Railway deployment (Node.js server)
@@ -17,11 +35,10 @@ const nextConfig = {
         // Apply security headers to all routes
         source: '/(.*)',
         headers: [
-          // Content Security Policy
+          // Content Security Policy (built above; 'unsafe-eval' dev-only)
           {
             key: 'Content-Security-Policy',
-            value:
-              "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none';",
+            value: contentSecurityPolicy,
           },
           // Prevent MIME type sniffing
           {

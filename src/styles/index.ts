@@ -1,6 +1,6 @@
-// Simplified styles - only includes what's actually being used
+// Shared inline-style objects and name text presets.
 import { colors } from './colors';
-import { spacing, zIndex } from './sizing';
+import { zIndex } from './sizing';
 import { textStyles, fonts } from './typography';
 
 export const styles = {
@@ -24,9 +24,9 @@ export const styles = {
   },
 };
 
-// Typography styles - used in InteractiveTextSimple.tsx
+// Name text presets
 export const nameText = {
-  fontFamily: fonts.alien, // Alien Encounters font
+  fontFamily: fonts.alien,
   fontSize: textStyles.display.md.fontSize, // Desktop: 36px
   lineHeight: textStyles.display.md.lineHeight,
   fontWeight: 400,
@@ -36,7 +36,7 @@ export const nameText = {
 
 export const nameTextMobile = {
   fontFamily: fonts.alien,
-  fontSize: textStyles.display.sm.fontSize, // Mobile: 30px (smaller than 36px)
+  fontSize: textStyles.display.sm.fontSize, // Mobile: 30px
   lineHeight: textStyles.display.sm.lineHeight,
   fontWeight: 400,
   color: colors.black,

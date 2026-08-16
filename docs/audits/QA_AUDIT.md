@@ -31,7 +31,57 @@ Nothing pushed or deployed.
 | SEC-06 | vulnerable build/dev transitives refreshed in range (`npm audit` 11 → 3) | `fa861c0` |
 | SEC-04 | unused `/_next/image` optimizer disabled | `4fb9625` |
 
-### Open — needs owner review (deferred by design, never auto-fixed)
+## 2026-08-16 — "fix all" round: deferred set implemented
+
+Owner authorized fixing the needs-review set. 24 further commits on
+`audit/2026-08-16`, gate green after every one, then a production-mode browser
+smoke test (Chrome DevTools, desktop + 375×667): home/ME/Work render correctly,
+full warp journey works, **mid-warp abort verified** (fresh nav wins, no forced
+jump at t=3.8s, overlay returns to rest, planet clickable again), no horizontal
+overflow at 375px, 44px+ touch targets, 15px mobile tagline, reduced-motion
+gives instant navigation with the loop parked. Console clean except a
+pre-existing `favicon.ico` 404 (site has no favicon — cosmetic follow-up).
+
+Resolved in this round (finding → what happened):
+
+| Finding(s) | Resolution |
+|---|---|
+| GAME-01/02, STATE-05 | game scaffolding deleted (~160 lines; git history preserves it) |
+| SEC-02 | CSP: `unsafe-eval` now dev-only; `base-uri`/`form-action`/`object-src` added |
+| SEC-03, SEC-08 | HSTS (1y, deliberately no includeSubDomains/preload), COOP/CORP same-origin |
+| SEC-05 | package-lock.json deleted — yarn.lock is the single lockfile (Railway builders pick yarn) |
+| SEC-09 | security.txt rewritten: monitored contact only, RFC 9116 fields |
+| follow-up | fonts converted to woff2 (20 KB → 4.3 KB each), preload updated |
+| TW-01 / SSOT-1 | `@theme` font tokens are the single source; `.font-alien` emits real CSS (verified in built css); tailwind.config.js deleted |
+| SAT-01 / SSOT-3, HEX-01, Z-01 | Saturn ramp/shimmer/z-index single-sourced (CSS vars + colors.ts mirror, byte-identical) |
+| PERF-02 / FONT-01 | resolved as KEEP: Inter is load-bearing (plain-name registration + punctuation glyphs); constraint documented in layout.tsx |
+| IR-G1 / STATE-02 | drop/scatter chain generation-guarded and interruptible; mid-flight catch holds the word under the pointer |
+| MUX-10 | scatter landing points clamped to viewport (letters stay visible at 375×667) |
+| SHELL-01, RING-01 | SectionShell primitive extracted; Saturn rings table-driven (DOM identical) |
+| MUX-11 | nav labels 13px / tagline 15px on mobile |
+| IR-N1 | PORTFOLIO triggers disable + dim + aria-busy during the warp |
+| PERF-01 / MUX-02 | full `prefers-reduced-motion` support: MotionConfig + CSS guard + react-spring immediate + WebGL loop parks (one frame per state change) + warp becomes instant arrival |
+| ui CD-01, SSOT-5/6, GLSL-01 | CosmicDustThree 893 → 686 lines; shaders/config extracted; stripe count, warp curve, streak block single-sourced |
+| SSOT-7 | particle/star materials share the same uniform objects; per-frame hand-copies deleted |
+| IR-B2, IR-B3, IR-R1 | WebGL-unavailable bail (site survives), context-loss pauses the loop, kickoff rAF id stored + self-terminating loop |
+| IR-R2, STATE-07, PERF-10 | fresh navigation kills the warp timeline (no forced jump), handler identity stabilized, section tweens tracked/killed |
+| PERF-06, MUX-07 | click target moves via translate3d+scale (no layout invalidation); pointerdown beats the moving target |
+| MUX-05 | mobile budget decided by the smaller viewport dimension (landscape phones included) |
+| MUX-06 / PERF-07 | warp overlay: gsap autoAlpha (participates only while visible), no backdrop blur on phones, fill derived from the palette token |
+| STATE-01 / SSOT-2 / EVT-01 | one `section-changed` channel, HomePage the single writer |
+| CD-06 | render-loop comment rewritten to current state |
+
+### Still open (deliberate, with reasons)
+
+| Item | Reason |
+|---|---|
+| next@16 major (3 residual high advisories: postcss/sharp exact-pinned by next 15) | framework major upgrade is a project, not a fix; the vulnerable optimizer path is disabled (SEC-04) and unreachable |
+| PERF-05 react-spring+use-gesture → framer consolidation | framer drag requires the `domMax` bundle, which would give back the savings; two-library status quo documented |
+| MUX-12 nav thumb-reach | relocating the Saturn-rings nav is a redesign decision, not a defect |
+| favicon | site 404s on /favicon.ico — add an icon when there's a design for it |
+| Real-device tap test (MUX-07 residual) | pointerdown implemented and desktop-verified; a physical-phone pass remains worthwhile |
+
+### Open — resolved by the fix-all round (historical list below)
 
 | Finding(s) | Issue | Why deferred |
 |---|---|---|

@@ -40,8 +40,10 @@ const MIN_CAMERA_DIST = 3;
 const STATIC_HOLD_MS = 2600;
 /** Sports-logotype italics: x' = x + shear * y, applied per glyph geometry. */
 const ITALIC_SHEAR = 0.28;
-/** Baseline-to-baseline pitch of the stacked word lines. */
-const LINE_PITCH = 1.3;
+/** Gap between word tokens on the single line, in text-size units. */
+const SEGMENT_GAP = 0.3;
+/** The red side tokens render at this fraction of the blue IT's size. */
+const SIDE_TOKEN_SCALE = 0.62;
 /** Silver ring: band width and clearance around the wordmark. */
 const RING_WIDTH = 0.22;
 const RING_PAD = 0.55;
@@ -182,18 +184,19 @@ const LogoSting = ({
     // letter fades in during its fall — matte-leaning so the colors read as
     // flat print, with just enough gloss for the glint sweep to register.
     const shear = new THREE.Matrix4().makeShear(ITALIC_SHEAR, 0, 0, 0, 0, 0);
-    // Tokens stack as centered lines, top to bottom, inside the round badge
+    // Single-line lockup on one shared baseline: the blue IT dominates and
+    // the red side tokens render smaller
     const tokens = word.split(' ').filter(Boolean);
     const letterMeshes: THREE.Mesh[] = [];
     let minY = Infinity;
     let maxY = -Infinity;
-    let maxLineWidth = 0;
+    let cursor = 0;
 
     tokens.forEach((token, tokenIndex) => {
-      const baseline = ((tokens.length - 1) / 2 - tokenIndex) * LINE_PITCH;
+      if (tokenIndex > 0) cursor += SEGMENT_GAP;
       const accent = isAccentToken(token);
-      const lineMeshes: THREE.Mesh[] = [];
-      let cursor = 0;
+      const tokenScale = accent ? 1 : SIDE_TOKEN_SCALE;
+      let firstInToken = true;
       for (const ch of token) {
         const glyph = buildGlyph(ch);
         if (!glyph) continue;
@@ -204,16 +207,19 @@ const LogoSting = ({
           bevelSize: 0.02,
           bevelSegments: 2,
         });
-        // Shear about the baseline origin, then center x/z ONLY — y stays
-        // authored so every letter in a line shares one baseline
+        // Bake the token size into the geometry (about the baseline origin) so
+        // mesh.scale stays free for the landing squash; shear AFTER scaling
+        // keeps the italic angle identical across sizes. Then center x/z ONLY —
+        // y stays authored so every letter shares the one baseline.
+        geometry.scale(tokenScale, tokenScale, tokenScale);
         geometry.applyMatrix4(shear);
         geometry.computeBoundingBox();
         const raw = geometry.boundingBox!;
         geometry.translate(-(raw.min.x + raw.max.x) / 2, 0, -(raw.min.z + raw.max.z) / 2);
         geometry.computeBoundingBox();
         const bbox = geometry.boundingBox!;
-        minY = Math.min(minY, baseline + bbox.min.y);
-        maxY = Math.max(maxY, baseline + bbox.max.y);
+        minY = Math.min(minY, bbox.min.y);
+        maxY = Math.max(maxY, bbox.max.y);
         geometries.push(geometry);
 
         const material = new THREE.MeshStandardMaterial({
@@ -226,32 +232,25 @@ const LogoSting = ({
         materials.push(material);
         const mesh = new THREE.Mesh(geometry, material);
         const letterWidth = bbox.max.x - bbox.min.x;
+        if (!firstInToken) cursor += GLYPH_SPACING * tokenScale;
+        firstInToken = false;
         mesh.position.x = cursor + letterWidth / 2;
-        cursor += letterWidth + GLYPH_SPACING;
-        lineMeshes.push(mesh);
+        cursor += letterWidth;
         letterMeshes.push(mesh);
-      }
-      const lineWidth = cursor - GLYPH_SPACING;
-      maxLineWidth = Math.max(maxLineWidth, lineWidth);
-      for (const mesh of lineMeshes) {
-        mesh.position.x -= lineWidth / 2; // center each line
-        mesh.position.y = baseline;
       }
     });
 
-    // Center the stack vertically inside the ring
-    const stackMidY = (minY + maxY) / 2;
+    const wordWidth = cursor;
+    const wordMidY = (minY + maxY) / 2;
     for (const mesh of letterMeshes) {
-      mesh.position.y -= stackMidY;
+      mesh.position.x -= wordWidth / 2;
+      mesh.position.y = -wordMidY; // shared shift keeps the common baseline
       group.add(mesh);
     }
 
     // Silver ROUND ring: flat extruded band with a bevel, like a badge —
-    // radius clears the widest line and the full stack height
-    ovalX = Math.max(
-      maxLineWidth / 2 + RING_PAD + RING_WIDTH,
-      (maxY - minY) / 2 + 0.45
-    );
+    // radius clears the word line and its height
+    ovalX = Math.max(wordWidth / 2 + RING_PAD + RING_WIDTH, (maxY - minY) / 2 + 0.45);
     ovalY = ovalX;
     const ringShape = new THREE.Shape();
     ringShape.absellipse(0, 0, ovalX, ovalY, 0, Math.PI * 2, false, 0);
@@ -491,12 +490,17 @@ const LogoSting = ({
               }}
             >
               {word.split(' ').map((token, i) => (
-                <div
+                <span
                   key={`${token}-${i}`}
-                  style={isAccentToken(token) ? { color: WORD_BLUE } : undefined}
+                  style={
+                    isAccentToken(token)
+                      ? { color: WORD_BLUE }
+                      : { fontSize: `${SIDE_TOKEN_SCALE}em` }
+                  }
                 >
+                  {i > 0 ? ' ' : ''}
                   {token}
-                </div>
+                </span>
               ))}
             </div>
           </div>

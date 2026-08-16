@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { animated, useSpringValue, useSpring } from '@react-spring/web';
 import { useDrag } from '@use-gesture/react';
 import { useDevice } from '../hooks/useDevice';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 import { nameText, nameTextMobile } from '../../styles';
 import { zIndex } from '../../styles/sizing';
 
@@ -35,6 +36,7 @@ const DraggableWord = ({ word, initialX, initialY }: WordProps) => {
     }>
   >([]);
   const device = useDevice();
+  const prefersReducedMotion = useReducedMotion();
 
   // Mobile-optimized spring configurations
   const springConfig = useMemo(
@@ -98,8 +100,21 @@ const DraggableWord = ({ word, initialX, initialY }: WordProps) => {
         }
         wordX.set(ox);
         wordY.set(oy);
-        wordScale.start({ to: 1.1, config: springConfig.scale });
+        if (prefersReducedMotion) {
+          wordScale.set(1.1);
+        } else {
+          wordScale.start({ to: 1.1, config: springConfig.scale });
+        }
       } else {
+        if (prefersReducedMotion) {
+          // Reduced motion: no drop/scatter choreography — the word snaps
+          // straight back to its resting position on release
+          wordX.set(initialX);
+          wordY.set(initialY);
+          wordScale.set(1);
+          return;
+        }
+
         // Drop floor: 300px above the viewport bottom, clamped so a short
         // viewport can't put the floor above the word's start position
         const screenHeight =
@@ -196,6 +211,7 @@ const DraggableWord = ({ word, initialX, initialY }: WordProps) => {
             x={letterData.x}
             y={letterData.y}
             textStyles={currentTextStyles}
+            reducedMotion={prefersReducedMotion}
           />
         ))}
       </>
@@ -230,6 +246,7 @@ interface ScatteredLetterProps {
   x: number;
   y: number;
   textStyles: typeof nameText;
+  reducedMotion: boolean;
 }
 
 const ScatteredLetter = React.memo(({
@@ -237,6 +254,7 @@ const ScatteredLetter = React.memo(({
   x,
   y,
   textStyles,
+  reducedMotion,
 }: ScatteredLetterProps) => {
   const {
     x: springX,
@@ -246,6 +264,9 @@ const ScatteredLetter = React.memo(({
   } = useSpring({
     from: { x, y, rotation: 0, scale: 1 },
     to: async (next) => {
+      // Reduced motion: hold the from-values — no bounce choreography
+      if (reducedMotion) return;
+
       // Bounce sequence: up, quick drop, settle
       await next({
         x,

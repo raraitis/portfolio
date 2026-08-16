@@ -11,6 +11,7 @@ import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import gsap from 'gsap';
 import { buildGlyph, buildLineShapes, GLYPH_SPACING } from './logoSting.glyphs';
+import { createStingAudio, type StingAudio } from './logoSting.audio';
 import { MOBILE_BREAKPOINT, zIndex } from '@/styles/sizing';
 import { colors, shimmer } from '@/styles/colors';
 import { fonts } from '@/styles/typography';
@@ -89,6 +90,7 @@ const LogoSting = ({
   const glowRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const timelineRef = useRef<gsap.core.Timeline | null>(null);
+  const audioRef = useRef<StingAudio | null>(null);
   const finishedRef = useRef(false);
 
   const onDoneRef = useRef(onDone);
@@ -103,6 +105,7 @@ const LogoSting = ({
     if (finishedRef.current) return;
     finishedRef.current = true;
     timelineRef.current?.kill();
+    audioRef.current?.stop();
     gsap.to(overlayRef.current, {
       autoAlpha: 0,
       duration: 0.25,
@@ -367,6 +370,9 @@ const LogoSting = ({
     finalDist = fitCameraDistance();
     camera.position.set(0, group.position.y, finalDist);
 
+    const audio = createStingAudio();
+    audioRef.current = audio;
+
     const tl = gsap.timeline();
     tl.timeScale(PLAYBACK_RATE);
     timelineRef.current = tl;
@@ -390,6 +396,7 @@ const LogoSting = ({
     tokenMeshGroups.forEach((tokenMeshes, i) => {
       const at = T.stampStart + i * T.stampInterval;
       const land = at + T.stampDur;
+      tl.call(() => audio.whoosh(), [], at).call(() => audio.impact(), [], land);
       for (const mesh of tokenMeshes) {
         mesh.visible = false;
         const material = mesh.material as THREE.MeshStandardMaterial;
@@ -415,6 +422,7 @@ const LogoSting = ({
     // Secondary line rises in as one unit once the mark is stamped
     if (sublineMeshes.length > 0) {
       const subMaterial = sublineMeshes[0].material as THREE.MeshStandardMaterial;
+      tl.call(() => audio.swell(), [], sublineAt);
       tl.fromTo(subMaterial, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: 'power1.out' }, sublineAt);
       for (const mesh of sublineMeshes) {
         mesh.visible = false;
@@ -432,6 +440,7 @@ const LogoSting = ({
     ringMesh.visible = false;
     fillMesh.visible = false;
     tl
+      .call(() => audio.ringBoom(), [], ringHit)
       .set(ringMesh, { visible: true }, ringAt)
       .set(fillMesh, { visible: true }, ringAt)
       .fromTo(ringMaterial, { opacity: 0 }, { opacity: 1, duration: 0.15, ease: 'power1.out' }, ringAt)
@@ -502,6 +511,8 @@ const LogoSting = ({
     return () => {
       timelineRef.current?.kill();
       timelineRef.current = null;
+      audio.dispose();
+      audioRef.current = null;
       cancelAnimationFrame(frameId);
       clearTimeout(resizeTimer);
       window.removeEventListener('resize', handleResize);

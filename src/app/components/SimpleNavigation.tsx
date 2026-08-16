@@ -16,6 +16,24 @@ const NAV_ITEMS: readonly NavItem[] = [
   { word: 'PORTFOLIO', section: 'portfolio', useWarp: true, visibleOn: ['me'] },
 ];
 
+interface Ring {
+  /** Negative-margin classes — smaller on mobile to prevent overflow. */
+  margin: string;
+  border: string;
+  /** Extra size beyond the nav content (matches the mobile margin × 2). */
+  size: string;
+  duration: string;
+  direction?: 'reverse';
+  rotation: string;
+}
+
+// Outer → inner Saturn rings; values copied verbatim from the original divs.
+const RINGS: readonly Ring[] = [
+  { margin: '-m-5 sm:-m-12', border: 'border-gray-300/15', size: '2.5rem', duration: '60s', rotation: '15deg' },
+  { margin: '-m-3 sm:-m-8', border: 'border-gray-400/20', size: '1.5rem', duration: '45s', direction: 'reverse', rotation: '-10deg' },
+  { margin: '-m-2 sm:-m-6', border: 'border-gray-500/25', size: '1rem', duration: '30s', rotation: '8deg' },
+];
+
 const SimpleNavigation = () => {
   const [currentSection, setCurrentSection] = useState<SectionName>('home');
 
@@ -35,45 +53,21 @@ const SimpleNavigation = () => {
     <div className='fixed z-50 top-[max(1rem,env(safe-area-inset-top))] right-[max(1rem,env(safe-area-inset-right))] sm:top-16 sm:right-20'>
       {/* Saturn-like rings container */}
       <div className='relative'>
-        {/* Outer ring - smaller on mobile to prevent overflow */}
-        <div
-          className='absolute inset-0 -m-5 sm:-m-12 rounded-full border border-gray-300/15 animate-spin-slow pointer-events-none'
-          style={{
-            width: 'calc(100% + 2.5rem)',
-            height: 'calc(100% + 2.5rem)',
-            animationDuration: '60s',
-            borderStyle: 'solid',
-            borderWidth: '1px 0',
-            transform: 'rotate(15deg)',
-          }}
-        ></div>
-
-        {/* Middle ring */}
-        <div
-          className='absolute inset-0 -m-3 sm:-m-8 rounded-full border border-gray-400/20 animate-spin-slow pointer-events-none'
-          style={{
-            width: 'calc(100% + 1.5rem)',
-            height: 'calc(100% + 1.5rem)',
-            animationDuration: '45s',
-            animationDirection: 'reverse',
-            borderStyle: 'solid',
-            borderWidth: '1px 0',
-            transform: 'rotate(-10deg)',
-          }}
-        ></div>
-
-        {/* Inner ring */}
-        <div
-          className='absolute inset-0 -m-2 sm:-m-6 rounded-full border border-gray-500/25 animate-spin-slow pointer-events-none'
-          style={{
-            width: 'calc(100% + 1rem)',
-            height: 'calc(100% + 1rem)',
-            animationDuration: '30s',
-            borderStyle: 'solid',
-            borderWidth: '1px 0',
-            transform: 'rotate(8deg)',
-          }}
-        ></div>
+        {RINGS.map((ring) => (
+          <div
+            key={ring.duration}
+            className={`absolute inset-0 ${ring.margin} rounded-full border ${ring.border} animate-spin-slow pointer-events-none`}
+            style={{
+              width: `calc(100% + ${ring.size})`,
+              height: `calc(100% + ${ring.size})`,
+              animationDuration: ring.duration,
+              animationDirection: ring.direction,
+              borderStyle: 'solid',
+              borderWidth: '1px 0',
+              transform: `rotate(${ring.rotation})`,
+            }}
+          ></div>
+        ))}
 
         {/* Navigation content */}
         <div className='flex space-x-4 sm:space-x-8 relative z-10'>

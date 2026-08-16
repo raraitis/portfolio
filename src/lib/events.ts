@@ -1,5 +1,4 @@
-// Type-safe event bus — lightweight pub/sub replacing window globals.
-// Scales cleanly for future features (game section, etc.).
+// Type-safe event bus (pub/sub) for cross-component section/navigation events.
 
 export type SectionName = 'home' | 'me' | 'portfolio' | 'game';
 

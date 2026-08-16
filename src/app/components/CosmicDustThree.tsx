@@ -105,7 +105,17 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
     cameraRef.current = camera;
 
     const isMobile = width < MOBILE_BREAKPOINT;
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: !isMobile });
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ alpha: true, antialias: !isMobile });
+    } catch (err) {
+      // WebGL disabled/blocklisted: the background is decorative — the site must
+      // keep working without it, so bail instead of letting the throw blank the app (IR-B2)
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('WebGL unavailable — cosmic background disabled', err);
+      }
+      return;
+    }
     renderer.setSize(width, height);
     renderer.setPixelRatio(isMobile ? Math.min(window.devicePixelRatio, 1.5) : Math.min(window.devicePixelRatio, 2));
     renderer.setClearColor(0x000000, 0);
@@ -309,6 +319,7 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
     const u = material.uniforms;
 
     const animate = (timestamp: number) => {
+      if (!rendererRef.current) return; // self-terminating after teardown (IR-R1)
       if (lastTimestamp === 0) lastTimestamp = timestamp;
       const dt = Math.min((timestamp - lastTimestamp) / 1000, 0.05);
       lastTimestamp = timestamp;
@@ -455,7 +466,22 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
       frameIdRef.current = requestAnimationFrame(animate);
     };
 
-    requestAnimationFrame(animate);
+    frameIdRef.current = requestAnimationFrame(animate);
+
+    // Pause the loop while the WebGL context is lost (three restores the context
+    // itself); resume with fresh dt/fps state so adaptive quality isn't skewed (IR-B3)
+    const canvas = renderer.domElement;
+    const onContextLost = () => {
+      cancelAnimationFrame(frameIdRef.current);
+    };
+    const onContextRestored = () => {
+      lastTimestamp = 0;
+      fpsAccum = 0;
+      fpsFrames = 0;
+      frameIdRef.current = requestAnimationFrame(animate);
+    };
+    canvas.addEventListener('webglcontextlost', onContextLost);
+    canvas.addEventListener('webglcontextrestored', onContextRestored);
 
     // Resize handler — debounced
     let resizeTimer: ReturnType<typeof setTimeout>;
@@ -483,6 +509,8 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
       cancelAnimationFrame(frameIdRef.current);
       clearTimeout(resizeTimer);
       window.removeEventListener('resize', handleResize);
+      canvas.removeEventListener('webglcontextlost', onContextLost);
+      canvas.removeEventListener('webglcontextrestored', onContextRestored);
       geometry.dispose();
       material.dispose();
       starGeo.dispose();
@@ -495,6 +523,7 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
         rendererRef.current.forceContextLoss();
         rendererRef.current.dispose();
       }
+      rendererRef.current = null;
     };
   }, []);
 

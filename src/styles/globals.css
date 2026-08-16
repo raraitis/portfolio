@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+/* Font stacks — single source of truth (SSOT-1/TW-01).
+   src/styles/typography.ts `fonts.alien` consumes --font-alien via var();
+   its var() fallback mirrors this stack — keep both in sync. */
+@theme {
+  --font-sans: 'Alien Encounters', 'Inter', system-ui, sans-serif;
+  --font-alien: 'Alien Encounters', 'Inter', system-ui, sans-serif;
+}
+
 html {
   /* Gradient on html (not body) so it extends into iOS Safari safe areas */
   background: linear-gradient(135deg,
@@ -17,7 +25,7 @@ html {
 body {
   color: #171717;
   background: transparent; /* Transparent so html gradient shows through safe areas */
-  font-family: 'Alien Encounters', 'Inter', system-ui, sans-serif;
+  font-family: var(--font-alien);
   overscroll-behavior: none;
   -webkit-overflow-scrolling: touch;
   /* iOS safe area padding so content isn't behind notch/home indicator */

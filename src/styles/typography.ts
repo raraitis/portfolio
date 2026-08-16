@@ -1,6 +1,11 @@
 // Typography system
 export const fonts = {
-  alien: ['Alien Encounters', 'Inter', 'sans-serif'].join(', '),
+  // Resolves against the @theme block in src/styles/globals.css (SSOT-1) —
+  // that block is the single source of truth for the stack. The var()
+  // fallback mirrors it verbatim solely for global-error.tsx, which renders
+  // without the compiled CSS (and thus without --font-alien) present.
+  alien:
+    "var(--font-alien, 'Alien Encounters', 'Inter', system-ui, sans-serif)",
 };
 
 // Font sizes with corresponding line heights

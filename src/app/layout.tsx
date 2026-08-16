@@ -7,6 +7,9 @@ import { styles as layoutStyles } from '@/styles';
 import { TAGLINE } from '@/lib/content';
 import type { Metadata, Viewport } from 'next';
 
+// Load-bearing: registers the plain 'Inter' family that the --font-alien /
+// --font-sans stacks fall back to — it supplies punctuation glyphs Alien
+// Encounters lacks (e.g. the '|' separators in MeSection). Do not remove.
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',

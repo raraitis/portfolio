@@ -1,6 +1,7 @@
 // Color system
 export const colors = {
   black: '#000000',
+  white: '#ffffff',
 
   // Saturn theme colors — canonical ramp. The html background gradient in
   // src/styles/globals.css mirrors lightest…darkest as --color-saturn-*

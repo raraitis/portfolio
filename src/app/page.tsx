@@ -58,13 +58,6 @@ export default function HomePage() {
           <AnimatePresence mode='wait'>
             {renderSection()}
           </AnimatePresence>
-          {/* Temporary test trigger for the LogoSting boot animation */}
-          <button
-            onClick={() => setStingOpen(true)}
-            className='fixed z-50 bottom-[max(1rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] font-alien text-[13px] sm:text-base tracking-wide text-gray-600 hover:text-gray-800 active:text-gray-900 transition-colors select-none bg-transparent border-none cursor-pointer py-3 px-2 min-h-[44px] min-w-[44px]'
-          >
-            ▶ STING
-          </button>
           {stingOpen && <LogoSting onDone={closeSting} />}
         </main>
       </MotionConfig>

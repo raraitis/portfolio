@@ -71,14 +71,29 @@ Resolved in this round (finding → what happened):
 | STATE-01 / SSOT-2 / EVT-01 | one `section-changed` channel, HomePage the single writer |
 | CD-06 | render-loop comment rewritten to current state |
 
+## 2026-08-16 — follow-up round: Next 16 + favicon
+
+- **next 15.5.23 → 16.3.1** — `yarn audit` now reports **0 vulnerabilities**
+  (next 16 ships sharp 0.35.3 and unpins postcss). `next lint` was removed in
+  16, so lint runs the ESLint CLI against `eslint.config.mjs` (FlatCompat over
+  `next/core-web-vitals`). tsconfig auto-migrated by next (react-jsx runtime).
+- **eslint-config-next stays 15.x deliberately** — its 16.x chain requires
+  node ^20.19 || ^22.13 || >=24 and this machine runs 23.9; `--ignore-engines`
+  would commit a lockfile that fails plain `yarn install`. Bump it together
+  with a local node LTS upgrade.
+- **Favicon added** — `src/app/icon.svg`, a striped-planet mark from the
+  Saturn palette; the tab icon 404 is gone.
+- Re-verified in a production-mode browser session on next 16: home/ME/warp
+  journey works, CSP has no `unsafe-eval`, HSTS present, icon served, console
+  clean.
+
 ### Still open (deliberate, with reasons)
 
 | Item | Reason |
 |---|---|
-| next@16 major (3 residual high advisories: postcss/sharp exact-pinned by next 15) | framework major upgrade is a project, not a fix; the vulnerable optimizer path is disabled (SEC-04) and unreachable |
+| eslint-config-next 15.x → 16.x | blocked on a local node LTS upgrade (see above); lint-only dependency, ships nothing |
 | PERF-05 react-spring+use-gesture → framer consolidation | framer drag requires the `domMax` bundle, which would give back the savings; two-library status quo documented |
 | MUX-12 nav thumb-reach | relocating the Saturn-rings nav is a redesign decision, not a defect |
-| favicon | site 404s on /favicon.ico — add an icon when there's a design for it |
 | Real-device tap test (MUX-07 residual) | pointerdown implemented and desktop-verified; a physical-phone pass remains worthwhile |
 
 ### Open — resolved by the fix-all round (historical list below)

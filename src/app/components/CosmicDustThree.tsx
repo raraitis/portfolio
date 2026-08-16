@@ -195,6 +195,14 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
     geometry.setAttribute('aFormation', new THREE.BufferAttribute(formation, 4));
     geometry.setAttribute('aBaseColor', new THREE.BufferAttribute(baseColors, 3));
 
+    // Shared uniform objects — particle and star materials reference the SAME
+    // objects, so one write per frame updates both layers (SSOT-7)
+    const sharedUniforms = {
+      uTime: { value: 0 },
+      uWarpProgress: { value: 0 },
+      uWarpCenter: { value: new THREE.Vector2() },
+    };
+
     const material = new THREE.ShaderMaterial({
       vertexShader: particleVertexShader,
       fragmentShader: particleFragmentShader,
@@ -202,7 +210,7 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
       depthWrite: false,
       blending: THREE.AdditiveBlending,
       uniforms: {
-        uTime: { value: 0 },
+        uTime: sharedUniforms.uTime,
         uBall0Center: { value: new THREE.Vector3() },
         uBall1Center: { value: new THREE.Vector3() },
         uBall0Spin: { value: new THREE.Vector2(BALLS[0].spinSpeed, BALLS[0].swirlSpeed) },
@@ -211,8 +219,8 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
         uPlanetForm: { value: 0 },
         uPlanetSpin: { value: new THREE.Vector2(1, 0) },
         uBallDepth: { value: new THREE.Vector2(0.5, 0.5) },
-        uWarpProgress: { value: 0 },
-        uWarpCenter: { value: new THREE.Vector2() },
+        uWarpProgress: sharedUniforms.uWarpProgress,
+        uWarpCenter: sharedUniforms.uWarpCenter,
       },
     });
 
@@ -271,9 +279,9 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
       depthWrite: false,
       blending: THREE.AdditiveBlending,
       uniforms: {
-        uTime: { value: 0 },
-        uWarpProgress: { value: 0 },
-        uWarpCenter: { value: new THREE.Vector2() },
+        uTime: sharedUniforms.uTime,
+        uWarpProgress: sharedUniforms.uWarpProgress,
+        uWarpCenter: sharedUniforms.uWarpCenter,
       },
     });
 
@@ -384,10 +392,6 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
       u.uPlanetSpin.value.set(Math.cos(planetSpin), Math.sin(planetSpin));
       u.uBallDepth.value.set(mainDepth, childDepth);
 
-      // Sync star field uniforms
-      starMaterial.uniforms.uTime.value = time;
-      starMaterial.uniforms.uWarpProgress.value = u.uWarpProgress.value;
-
       // Warp center = planet position
       const pTheta = planetMesh.userData.planetTheta;
       const pPhi = planetMesh.userData.planetPhi;
@@ -399,9 +403,6 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
         mainBall.centerX + Math.cos(pCurTheta) * Math.sin(pPhi) * pDist,
         mainBall.centerY + Math.cos(pPhi) * pDist
       );
-
-      // Star warp center matches particle warp center (planet position + screen offset)
-      starMaterial.uniforms.uWarpCenter.value.copy(u.uWarpCenter.value);
 
       // Update planet mesh
       const sinPPhi = Math.sin(pPhi), cosPPhi = Math.cos(pPhi);

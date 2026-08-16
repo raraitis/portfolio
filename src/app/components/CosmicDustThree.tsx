@@ -22,6 +22,7 @@ import {
   starVertexShader,
   starFragmentShader,
 } from './cosmicDust.shaders';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 
 interface CosmicDustThreeProps {
   section: SectionName;
@@ -56,10 +57,28 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
   const planetFormRef = useRef(0);
   const sectionRef = useRef(section);
 
+  // Reduced motion: render static compositions instead of the 60fps loop.
+  // renderOnceRef is set only in that mode; the ref mirror keeps the
+  // refs-only constraint of handlePlanetClick intact.
+  const reducedMotion = useReducedMotion();
+  const reducedMotionRef = useRef(reducedMotion);
+  useEffect(() => { reducedMotionRef.current = reducedMotion; }, [reducedMotion]);
+  const renderOnceRef = useRef<(() => void) | null>(null);
+
   // Stable identity for the empty-dep bus subscription below. Constraint: this
   // handler must only read refs — any prop/state read would go stale (STATE-07).
   const handlePlanetClick = useCallback(() => {
     if (flyingRef.current) return;
+
+    if (reducedMotionRef.current) {
+      // Skip the 10.5s warp choreography entirely — arrive instantly
+      portfolioBlendRef.current = 1;
+      planetFormRef.current = 1;
+      emit('navigate', 'portfolio');
+      renderOnceRef.current?.();
+      return;
+    }
+
     flyingRef.current = true;
     frozenOrbitTimeRef.current = animTimeRef.current;
 
@@ -340,6 +359,9 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
     let cachedH = height;
 
     // ============= ANIMATION LOOP — only uniforms + ball centers (no per-particle work) =============
+    // Under reduced motion the loop never re-arms: one frame renders per state
+    // change (mount, resize, section, warp jump) via renderOnceRef.
+    const loop = !reducedMotion;
     let time = 0;
     let lastTimestamp = 0;
     const mainBall = ballRuntimes[0];
@@ -423,7 +445,7 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
       const childMaxZ = childBall.config.orbitRadius + mainBall.config.orbitRadius + 100;
       const childDepth = Math.max(0, Math.min(1, (childBall.centerZ + childMaxZ) / (childMaxZ * 2)));
 
-      // Update uniforms (replaces 352KB buffer uploads with ~20 floats)
+      // Per-frame GPU work is ~20 floats of uniforms — no per-particle buffer writes
       u.uTime.value = time;
       u.uBall0Center.value.set(mainBall.centerX, mainBall.centerY, mainBall.centerZ);
       u.uBall1Center.value.set(childBall.centerX, childBall.centerY, childBall.centerZ);
@@ -498,10 +520,11 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
       }
 
       renderer.render(scene, camera);
-      frameIdRef.current = requestAnimationFrame(animate);
+      if (loop) frameIdRef.current = requestAnimationFrame(animate);
     };
 
     frameIdRef.current = requestAnimationFrame(animate);
+    renderOnceRef.current = loop ? null : () => animate(performance.now());
 
     // Pause the loop while the WebGL context is lost (three restores the context
     // itself); resume with fresh dt/fps state so adaptive quality isn't skewed (IR-B3)
@@ -513,7 +536,8 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
       lastTimestamp = 0;
       fpsAccum = 0;
       fpsFrames = 0;
-      frameIdRef.current = requestAnimationFrame(animate);
+      if (loop) frameIdRef.current = requestAnimationFrame(animate);
+      else animate(performance.now());
     };
     canvas.addEventListener('webglcontextlost', onContextLost);
     canvas.addEventListener('webglcontextrestored', onContextRestored);
@@ -535,6 +559,7 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
         if (rendererRef.current) {
           rendererRef.current.setSize(cachedW, cachedH);
         }
+        if (!loop) animate(performance.now());
       }, 150);
     };
     window.addEventListener('resize', handleResize);
@@ -558,9 +583,10 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
         rendererRef.current.forceContextLoss();
         rendererRef.current.dispose();
       }
+      renderOnceRef.current = null;
       rendererRef.current = null;
     };
-  }, []);
+  }, [reducedMotion]);
 
   useEffect(() => on('warp-trigger', handlePlanetClick), [handlePlanetClick]);
 
@@ -583,6 +609,12 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
 
   useEffect(() => {
     if (section !== 'portfolio' && portfolioBlendRef.current > 0) {
+      if (reducedMotion) {
+        planetFormRef.current = 0;
+        portfolioBlendRef.current = 0;
+        renderOnceRef.current?.();
+        return;
+      }
       const formTween = gsap.to(planetFormRef, { current: 0, duration: 1.0, ease: 'power2.in', overwrite: 'auto' });
       const blendTween = gsap.to(portfolioBlendRef, { current: 0, duration: 1.5, ease: 'power2.inOut', overwrite: 'auto' });
       return () => {
@@ -590,9 +622,12 @@ const CosmicDustThree = ({ section }: CosmicDustThreeProps) => {
         blendTween.kill();
       };
     }
-  }, [section]);
+  }, [section, reducedMotion]);
 
-  useEffect(() => { sectionRef.current = section; }, [section]);
+  useEffect(() => {
+    sectionRef.current = section;
+    renderOnceRef.current?.(); // reduced motion: reflect the new composition
+  }, [section]);
 
   return (
     <>
